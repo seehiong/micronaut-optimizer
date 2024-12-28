@@ -1,0 +1,73 @@
+plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("io.micronaut.application") version "4.4.4"
+    id("io.micronaut.aot") version "4.4.4"
+}
+
+version = "0.1"
+group = "io.github.seehiong.micronaut"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("io.micronaut:micronaut-http-validation")
+    annotationProcessor("io.micronaut.serde:micronaut-serde-processor")
+
+    implementation("io.micronaut.serde:micronaut-serde-jackson")
+    implementation("io.jenetics:jenetics:8.1.0")
+    implementation("org.choco-solver:choco-solver:4.10.14")
+    implementation("com.google.ortools:ortools-java:9.9.3963")
+    implementation("io.reactivex.rxjava3:rxjava:3.1.8")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.3")
+    implementation("org.apache.commons:commons-math3:3.6.1")
+
+    compileOnly("io.micronaut:micronaut-http-client")
+    compileOnly("org.projectlombok:lombok")
+    compileOnly("io.projectreactor:reactor-core")
+    runtimeOnly("ch.qos.logback:logback-classic")
+    
+    testImplementation("io.micronaut:micronaut-http-client")
+}
+
+
+application {
+    mainClass = "io.github.seehiong.micronaut.Application"
+}
+java {
+    sourceCompatibility = JavaVersion.toVersion("21")
+    targetCompatibility = JavaVersion.toVersion("21")
+}
+
+
+graalvmNative.toolchainDetection = false
+
+micronaut {
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(true)
+        annotations("io.github.seehiong.micronaut.*")
+    }
+    aot {
+        // Please review carefully the optimizations enabled below
+        // Check https://micronaut-projects.github.io/micronaut-aot/latest/guide/ for more details
+        optimizeServiceLoading = false
+        convertYamlToJava = false
+        precomputeOperations = true
+        cacheEnvironment = true
+        optimizeClassLoading = true
+        deduceEnvironment = true
+        optimizeNetty = true
+        replaceLogbackXml = true
+    }
+}
+
+
+tasks.named("dockerfileNative") {
+    jdkVersion = "21"
+}
+
+

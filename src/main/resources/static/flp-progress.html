@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>FLP Optimization Progress</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #tspChart {
+            background-color: #f0f0f0;
+            width: 800px !important;
+            height: 600px !important;
+        }
+
+        .slider-container {
+            margin: 10px 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            transform: translateX(-50%);
+            bottom: 100%;
+            margin-bottom: 5px;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #333;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.4em;
+            font-size: 75%;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+            color: #fff;
+            background-color: green;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .badge-solving {
+            background-color: red;
+        }
+
+        .badge-solved {
+            background-color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>FLP Optimization Progress</h1>
+    <div>
+        <span id="solverStateBadge" class="badge">Solved</span>
+    </div>
+    <div id="cost"></div>
+    <div id="customerCount"></div>
+    <div id="facilityCount"></div>
+    <div class="slider-container">
+        <label for="xScale">X Scale:</label>
+        <div class="slider-wrapper">
+            <input type="range" id="xScale" name="xScale" min="1">
+            <div class="tooltip"></div>
+        </div>
+        <label for="yScale">Y Scale:</label>
+        <div class="slider-wrapper">
+            <input type="range" id="yScale" name="yScale" min="1">
+            <div class="tooltip"></div>
+        </div>
+    </div>
+    <canvas id="flpChart" width="800" height="600"></canvas>
+
+    <script>
+        // Global variables to store chart instance
+        let chartInstance = null;
+
+        // Function to get query parameter by name
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Get the solverId, xScale, and yScale from the URL query parameters
+        const solverId = getQueryParam('solverId');
+        const initialXScale = getQueryParam('xScale', 30);
+        const initialYScale = getQueryParam('yScale', 30);
+
+        // Calculate max slider values (double the initial scale or minimum 100)
+        const xSliderMax = Math.max(initialXScale * 2, 100);
+        const ySliderMax = Math.max(initialYScale * 2, 100);
+
+        // Set up the sliders and tooltips
+        const sliders = {
+            x: {
+                slider: document.getElementById('xScale'),
+                tooltip: document.querySelector('#xScale + .tooltip')
+            },
+            y: {
+                slider: document.getElementById('yScale'),
+                tooltip: document.querySelector('#yScale + .tooltip')
+            }
+        };
+
+        // Configure sliders
+        sliders.x.slider.max = xSliderMax;
+        sliders.y.slider.max = ySliderMax;
+        sliders.x.slider.value = initialXScale;
+        sliders.y.slider.value = initialYScale;
+
+        // Add event listeners for tooltips
+        Object.values(sliders).forEach(({ slider, tooltip }) => {
+            slider.addEventListener('input', () => updateTooltip(slider, tooltip));
+            slider.addEventListener('mouseenter', () => {
+                updateTooltip(slider, tooltip);
+                tooltip.style.opacity = "1";
+            });
+            slider.addEventListener('mouseleave', () => tooltip.style.opacity = "0");
+        });
+
+        if (!solverId) {
+            document.getElementById('cost').innerText = 'Solver ID not provided in the URL.';
+        } else {
+            // Fetch the latest output on first load
+            fetch(`/flp/latest/${solverId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Received latest data:', data);
+
+                    // Initialize chart with the latest data
+                    initializeChart(data.assignmentMetric.facilityAssignment, data.locationMetadata.customerCoordinates, data.locationMetadata.facilityCoordinates);
+                    updatePath(data.assignmentMetric.facilityAssignment, data.locationMetadata.customerCoordinates, data.locationMetadata.facilityCoordinates);
+                    updateSolverStateBadge(data.solverState);
+                    displayCost(data.costMetric.cost);
+                    displayCustomerCount(data.locationMetadata.customerCoordinates.length);
+                    displayFacilityCount(data.locationMetadata.facilityCoordinates.length);
+                })
+                .catch(error => console.error('Error fetching latest data:', error));
+
+            const eventSource = new EventSource(`/flp/progress/${solverId}`);
+
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                console.log('Received data:', data);
+
+                // Initialize chart only once when first data arrives
+                if (!chartInstance) {
+                    initializeChart(data.assignmentMetric.facilityAssignment, data.locationMetadata.customerCoordinates, data.locationMetadata.facilityCoordinates);
+                }
+
+                updatePath(data.assignmentMetric.facilityAssignment, data.locationMetadata.customerCoordinates, data.locationMetadata.facilityCoordinates);
+                updateSolverStateBadge(data.solverState);
+                displayCost(data.costMetric.cost);
+                displayCustomerCount(data.locationMetadata.customerCoordinates.length);
+                displayFacilityCount(data.locationMetadata.facilityCoordinates.length);
+            };
+        }
+
+        // Function to initialize the chart with static customers and facilities
+        function initializeChart(facilityAssignments, customers, facilities) {
+            const ctx = document.getElementById('flpChart').getContext('2d');
+            const chartData = {
+                labels: [
+                    ...customers.map((_, index) => `Customer ${index + 1}`),
+                    ...facilities.map((_, index) => `Facility ${index + 1}`)
+                ],
+                datasets: [
+                    {
+                        label: 'Customer',
+                        data: customers.map(customer => ({ x: customer.x, y: customer.y })),
+                        borderColor: 'rgba(0, 0, 0, 0)',
+                        backgroundColor: 'rgba(255, 99, 132, 1)', // Red color for customers
+                        pointRadius: 5,
+                        showLine: false
+                    },
+                    {
+                        label: 'Facility',
+                        data: facilities.map(facility => ({ x: facility.x, y: facility.y })),
+                        borderColor: 'rgba(0, 0, 0, 0)',
+                        backgroundColor: 'rgba(0, 255, 0, 1)', // Green color for facilities
+                        pointRadius: 5,
+                        showLine: false
+                    },
+                    {
+                        label: 'Route',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)', // Blue color for the assigned facility
+                        borderWidth: 1,
+                        fill: false,
+                        showLine: true,
+                        pointRadius: 0
+                    }
+                ]
+            };
+
+            const chartOptions = {
+                responsive: false,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        min: 0,
+                        max: initialXScale,
+                        ticks: {
+                            callback: function (value) {
+                                return Number(value).toFixed(1); // Show only 1 decimal place
+                            }
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        min: 0,
+                        max: initialYScale,
+                        ticks: {
+                            callback: function (value) {
+                                return Number(value).toFixed(1); // Show only 1 decimal place
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            generateLabels: function (chart) {
+                                return [
+                                    // Customer Legend
+                                    {
+                                        text: 'Customer',
+                                        fillStyle: 'rgba(255, 99, 132, 1)',
+                                        hidden: !chart.isDatasetVisible(0),
+                                        datasetIndex: 0
+                                    },
+                                    // Facility Legend
+                                    {
+                                        text: 'Facility',
+                                        fillStyle: 'rgba(0, 255, 0, 1)',
+                                        hidden: !chart.isDatasetVisible(1),
+                                        datasetIndex: 1
+                                    },
+                                    // Route N Legend
+                                    {
+                                        text: 'Route',
+                                        fillStyle: 'rgba(54, 162, 235, 1)',
+                                        hidden: !chart.isDatasetVisible(2),
+                                        datasetIndex: 2
+                                    }
+                                ];
+                            }
+                        }
+                    }
+                }
+            };
+
+            chartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: chartData,
+                options: chartOptions
+            });
+
+            // Add event listeners to the sliders
+            document.getElementById('xScale').addEventListener('input', updateScale);
+            document.getElementById('yScale').addEventListener('input', updateScale);
+        }
+
+        // Function to update the path with new assignments
+        function updatePath(facilityAssignments, customers, facilities) {
+            if (chartInstance) {
+                // Remove old assignment datasets
+                chartInstance.data.datasets = chartInstance.data.datasets.filter(
+                    dataset => dataset.label === 'Customer' || dataset.label === 'Facility'
+                );
+
+                // Create new assignment datasets
+                const assignmentDatasets = facilityAssignments.map((facilityIndex, customerIndex) => ({
+                    label: `Route ${customerIndex + 1}`,
+                    data: [
+                        { x: facilities[facilityIndex].x, y: facilities[facilityIndex].y },
+                        { x: customers[customerIndex].x, y: customers[customerIndex].y }
+                    ],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    fill: false,
+                    showLine: true,
+                    pointRadius: 0
+                }));
+
+                // Add new assignment datasets
+                chartInstance.data.datasets.splice(1, 0, ...assignmentDatasets);
+                chartInstance.update();
+            }
+        }
+
+        // Function to display the cost value
+        function displayCost(cost) {
+            const costDiv = document.getElementById('cost');
+            costDiv.innerHTML = `<h4>Cost: ${cost}</h4>`;
+        }
+
+        // Function to display the customer count
+        function displayCustomerCount(customerCount) {
+            const customerCountDiv = document.getElementById('customerCount');
+            customerCountDiv.innerHTML = `<h4>Total Customer: ${customerCount}</h4>`;
+        }
+
+        // Function to display the facility count
+        function displayFacilityCount(facilityCount) {
+            const facilityCountDiv = document.getElementById('facilityCount');
+            facilityCountDiv.innerHTML = `<h4>Total Facility: ${facilityCount}</h4>`;
+        }
+
+        // Function to update the scale of the chart
+        function updateScale() {
+            const xScale = document.getElementById('xScale').value;
+            const yScale = document.getElementById('yScale').value;
+
+            // Update the chart scale
+            if (chartInstance) {
+                chartInstance.options.scales.x.min = 0;
+                chartInstance.options.scales.x.max = xScale;
+                chartInstance.options.scales.y.min = 0;
+                chartInstance.options.scales.y.max = yScale;
+                chartInstance.update();
+            }
+        }
+
+        // Tooltip functionality
+        function updateTooltip(slider, tooltip) {
+            const value = slider.value;
+            const range = slider.max - slider.min;
+            const percentage = (value - slider.min) / range;
+            const thumbPosition = percentage * slider.offsetWidth;
+
+            tooltip.style.left = `${thumbPosition}px`;
+            tooltip.textContent = value;
+            tooltip.style.opacity = "1";
+        }
+
+        // Function to update the badge based on solverState
+        function updateSolverStateBadge(solverState) {
+            const badge = document.getElementById('solverStateBadge');
+            if (solverState === 'SOLVING') {
+                badge.textContent = 'Solving';
+                badge.classList.remove('badge-solved');
+                badge.classList.add('badge-solving');
+            } else if (solverState === 'SOLVED') {
+                badge.textContent = 'Solved';
+                badge.classList.remove('badge-solving');
+                badge.classList.add('badge-solved');
+            }
+        }
+    </script>
+</body>
+
+</html>
