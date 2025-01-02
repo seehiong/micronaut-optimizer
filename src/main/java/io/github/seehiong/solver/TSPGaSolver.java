@@ -20,7 +20,6 @@ import io.github.seehiong.model.metric.TourMetric;
 import io.github.seehiong.model.output.TSPOutput;
 import io.github.seehiong.utils.CoordUtil;
 import io.reactivex.rxjava3.subjects.PublishSubject;
-
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -237,7 +236,7 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
     }
 
     int[] performMutation(TSPOutput individual, double temperature) {
-        int[] newGenome = individual.getTourMetric().getTour().clone();
+        int[] newGenome = individual.getTourMetric().getTours().clone();
         double newFitness;
         int mutationAttempts = 0;
 
@@ -255,7 +254,7 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
         }
 
         // No improvements after mutation attempts
-        return individual.getTourMetric().getTour();
+        return individual.getTourMetric().getTours();
     }
 
     int[] performCrossover(int[] parent1, int[] parent2) {
@@ -322,10 +321,10 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
     // Combine simulated annealing with genetic algorithm
     void simulatedAnnealing(TSPOutput individual, double temperature) {
         for (int i = 0; i < 100; i++) {  // Simulated annealing iterations
-            int[] mutatedGenome = mutateGenome(individual.getTourMetric().getTour());
+            int[] mutatedGenome = mutateGenome(individual.getTourMetric().getTours());
             double mutatedFitness = calculateFitness(mutatedGenome);
             if (mutatedFitness < individual.getCostMetric().getCost() || Math.exp((individual.getCostMetric().getCost() - mutatedFitness) / temperature) > Math.random()) {
-                individual.getTourMetric().setTour(mutatedGenome);
+                individual.getTourMetric().setTours(mutatedGenome);
                 individual.getCostMetric().setCost(mutatedFitness);
                 break;
             }
@@ -343,7 +342,7 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
 
             Instant startTime = Instant.now(); // Record the start time
             fitnessMemo.clear();
-            graph = input.getDistanceMatrix();
+            graph = input.getDistances();
             maxCities = graph.length;
 
             List<TSPOutput> population = initialPopulation();
@@ -370,7 +369,7 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
                 for (int i = 0; i < POPULATION_SIZE; i++) {
                     int[] newGnome;
                     if (Math.random() < 0.5) {
-                        newGnome = performCrossover(bestCurrentIndividual.getTourMetric().getTour(), secondBestIndividual.getTourMetric().getTour());
+                        newGnome = performCrossover(bestCurrentIndividual.getTourMetric().getTours(), secondBestIndividual.getTourMetric().getTours());
                     } else {
                         TSPOutput randomIndividual = population.get(i);
                         newGnome = performMutation(randomIndividual, temperature);
@@ -455,10 +454,10 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
             if (bestIndividual != null) {
                 bestIndividual.setSolverId(input.getSolverId());
                 bestIndividual.setIteration(generation);
+                bestIndividual.setSolverState(SolverState.SOLVED);
                 emitter.next(bestIndividual);
 
                 if (progressSubject != null) {
-                    bestIndividual.setSolverState(SolverState.SOLVED);
                     bestIndividual.setCitiesMetadata(cities);
                     progressSubject.onNext(bestIndividual);
                 }
@@ -471,5 +470,4 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
 
         }).subscribeOn(Schedulers.boundedElastic());
     }
-
 }

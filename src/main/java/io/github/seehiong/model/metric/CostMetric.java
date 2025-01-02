@@ -15,5 +15,4 @@ import lombok.NoArgsConstructor;
 public class CostMetric implements Metric {
 
     private double cost;
-
 }

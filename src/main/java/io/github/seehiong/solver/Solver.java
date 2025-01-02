@@ -8,5 +8,4 @@ import reactor.core.publisher.Flux;
 public interface Solver<I extends Input, O extends Output> {
 
     Flux<Object> solve(I input, PublishSubject<O> progressSubject);
-
 }

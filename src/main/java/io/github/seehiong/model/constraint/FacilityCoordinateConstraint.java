@@ -13,9 +13,8 @@ import io.micronaut.serde.annotation.Serdeable;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LocationConstraint implements Constraint {
+public class FacilityCoordinateConstraint implements Constraint {
 
-    private Coordinate[] facilityCoordinates;
-    private Coordinate[] customerCoordinates;
+    private Coordinate[] coordinates;
 
 }

@@ -14,6 +14,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TourMetric implements Metric {
 
-    private int[] tour;
-
+    private int[] tours;
 }

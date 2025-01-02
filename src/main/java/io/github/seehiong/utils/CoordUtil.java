@@ -5,10 +5,20 @@ import org.apache.commons.math3.linear.EigenDecomposition;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
+import io.github.seehiong.model.Coordinate;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class CoordUtil {
+
+    public Coordinate[] getCoordinates(double[][] distances) {
+        double[][] coordinates = deriveCoordinates(distances);
+        Coordinate[] result = new Coordinate[coordinates.length];
+        for (int i = 0; i < coordinates.length; i++) {
+            result[i] = new Coordinate(coordinates[i][0], coordinates[i][1]);
+        }
+        return result;
+    }
 
     public double[][] deriveCoordinates(double[][] distances) {
         int n = distances.length;

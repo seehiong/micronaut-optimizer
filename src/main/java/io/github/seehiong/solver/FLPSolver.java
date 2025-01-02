@@ -11,7 +11,8 @@ import com.google.ortools.linearsolver.MPVariable;
 
 import io.github.seehiong.model.SolverState;
 import io.github.seehiong.model.input.FLPInput;
-import io.github.seehiong.model.metadata.LocationMetadata;
+import io.github.seehiong.model.metadata.CustomerCoordinateMetadata;
+import io.github.seehiong.model.metadata.FacilityCoordinateMetadata;
 import io.github.seehiong.model.metric.AssignmentMetric;
 import io.github.seehiong.model.metric.CostMetric;
 import io.github.seehiong.model.output.FLPOutput;
@@ -65,17 +66,17 @@ public class FLPSolver implements Solver<FLPInput, FLPOutput> {
             for (int j = 0; j < numFacility; j++) {
                 MPConstraint constraint = solver.makeConstraint(-MPSolver.infinity(), 0.0, "capacity_" + j);
                 for (int i = 0; i < numCustomer; i++) {
-                    constraint.setCoefficient(a[i][j], input.getDemand()[i]);
+                    constraint.setCoefficient(a[i][j], input.getDemands()[i]);
                 }
-                constraint.setCoefficient(f[j], -input.getCapacity()[j]);
+                constraint.setCoefficient(f[j], -input.getCapacities()[j]);
             }
 
             // Objective function: minimize total cost (including setup and delivery cost)
             MPObjective objective = solver.objective();
             for (int j = 0; j < numFacility; j++) {
-                objective.setCoefficient(f[j], input.getSetupCost()[j]);
+                objective.setCoefficient(f[j], input.getCosts()[j]);
                 for (int i = 0; i < numCustomer; i++) {
-                    objective.setCoefficient(a[i][j], input.getDistanceMatrix()[i][j]);
+                    objective.setCoefficient(a[i][j], input.getDistances()[i][j]);
                 }
             }
             objective.setMinimization();
@@ -106,7 +107,7 @@ public class FLPSolver implements Solver<FLPInput, FLPOutput> {
                 for (int i = 0; i < numCustomer; ++i) {
                     for (int j = 0; j < numFacility; ++j) {
                         if (a[i][j].solutionValue() > 0.0) {
-                            assignmentMetric.getFacilityAssignment()[i] = j;
+                            assignmentMetric.getAssignments()[i] = j;
                             log.debug("customer {} assigned to facility {}", i, j);
                         }
                     }
@@ -121,10 +122,9 @@ public class FLPSolver implements Solver<FLPInput, FLPOutput> {
                         .build();
                 emitter.next(optimalSolution);
 
-                LocationMetadata locationMetadata = new LocationMetadata(input.getFacilityCoordinates(),
-                        input.getCustomerCoordinates());
                 optimalSolution.setSolverState(SolverState.SOLVED);
-                optimalSolution.setLocationMetadata(locationMetadata);
+                optimalSolution.setFacilityCoordinateMetadata(new FacilityCoordinateMetadata(input.getFacilityCoordinates()));
+                optimalSolution.setCustomerCoordinateMetadata(new CustomerCoordinateMetadata(input.getCustomerCoordinates()));
                 progressSubject.onNext(optimalSolution);
             }
 
@@ -133,5 +133,4 @@ public class FLPSolver implements Solver<FLPInput, FLPOutput> {
 
         }).subscribeOn(Schedulers.boundedElastic());
     }
-
 }

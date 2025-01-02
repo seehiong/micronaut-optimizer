@@ -1,6 +1,5 @@
 package io.github.seehiong.model.input;
 
-import io.github.seehiong.model.ProblemType;
 import io.github.seehiong.model.constraint.DistanceMatrixConstraint;
 import io.github.seehiong.model.constraint.SolveTimeConstraint;
 import io.github.seehiong.model.objective.MinMaxEnum;
@@ -23,19 +22,19 @@ public class TSPInput extends Input {
     private SolveTimeConstraint solveTimeConstraint;
     private MinMaxObjective minMaxObjective;
 
-    public TSPInput(ProblemType problemType, DistanceMatrixConstraint distanceMatrixConstraint,
+    public TSPInput(DistanceMatrixConstraint distanceMatrixConstraint,
             SolveTimeConstraint solveTimeConstraint, MinMaxObjective minMaxObjective) {
-        super(problemType);
+        super();
         this.distanceMatrixConstraint = distanceMatrixConstraint;
         this.solveTimeConstraint = solveTimeConstraint;
         this.minMaxObjective = minMaxObjective;
     }
 
-    public double[][] getDistanceMatrix() {
+    public double[][] getDistances() {
         if (distanceMatrixConstraint == null) {
             return null;
         }
-        return distanceMatrixConstraint.getDistanceMatrix();
+        return distanceMatrixConstraint.getDistances();
     }
 
     public String getSolveTime() {
@@ -51,5 +50,4 @@ public class TSPInput extends Input {
         }
         return minMaxObjective.getMinMaxEnum();
     }
-
 }

@@ -175,21 +175,21 @@
             document.getElementById('cost').innerText = 'Solver ID not provided in the URL.';
         } else {
             // Fetch the latest output on first load
-            fetch(`/tsp/latest/${solverId}`)
+            fetch(`/progress/latest/${solverId}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log('Received latest data:', data);
 
                     // Initialize chart with the latest data
                     initializeChart(data.citiesMetadata.cities);
-                    updatePath(data.tourMetric.tour, data.citiesMetadata.cities);
+                    updatePath(data.tourMetric.tours, data.citiesMetadata.cities);
                     updateSolverStateBadge(data.solverState);
                     displayCost(data.costMetric.cost);
                     displayCityCount(data.citiesMetadata.cities.length);
                 })
                 .catch(error => console.error('Error fetching latest data:', error));
 
-            const eventSource = new EventSource(`/tsp/progress/${solverId}`);
+            const eventSource = new EventSource(`/progress/${solverId}`);
 
             eventSource.onmessage = function (event) {
                 const data = JSON.parse(event.data);
@@ -200,7 +200,7 @@
                     initializeChart(data.citiesMetadata.cities);
                 }
 
-                updatePath(data.tourMetric.tour, data.citiesMetadata.cities);
+                updatePath(data.tourMetric.tours, data.citiesMetadata.cities);
                 updateSolverStateBadge(data.solverState);
                 displayCost(data.costMetric.cost);
                 displayCityCount(data.citiesMetadata.cities.length);
@@ -283,8 +283,8 @@
         }
 
         // Function to update the path
-        function updatePath(tour, cities) {
-            const routeCoordinates = tour.map(index => cities[index]).map(coord => ({ x: coord[0], y: coord[1] }));
+        function updatePath(tours, cities) {
+            const routeCoordinates = tours.map(index => cities[index]).map(coord => ({ x: coord[0], y: coord[1] }));
             routeCoordinates.push(routeCoordinates[0]); // Ensure the path returns to the starting point
 
             if (chartInstance) {

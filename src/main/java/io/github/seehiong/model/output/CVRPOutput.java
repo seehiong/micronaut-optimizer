@@ -1,12 +1,14 @@
 package io.github.seehiong.model.output;
 
+import java.util.ArrayList;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.github.seehiong.model.Coordinate;
-import io.github.seehiong.model.metadata.FacilityCoordinateMetadata;
 import io.github.seehiong.model.metadata.CustomerCoordinateMetadata;
-import io.github.seehiong.model.metric.AssignmentMetric;
+import io.github.seehiong.model.metadata.FacilityCoordinateMetadata;
 import io.github.seehiong.model.metric.CostMetric;
+import io.github.seehiong.model.metric.VehicleRouteMetric;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.Data;
@@ -19,28 +21,26 @@ import lombok.experimental.SuperBuilder;
 @Data
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-public class FLPOutput extends Output {
+public class CVRPOutput extends Output {
 
-    private AssignmentMetric assignmentMetric;
+    private VehicleRouteMetric vehicleRouteMetric;
     private CostMetric costMetric;
-    private FacilityCoordinateMetadata facilityCoordinateMetadata;
     private CustomerCoordinateMetadata customerCoordinateMetadata;
 
-    public FLPOutput(AssignmentMetric assignmentMetric, CostMetric costMetric,
-            FacilityCoordinateMetadata facilityCoordinateMetadata, CustomerCoordinateMetadata customerCoordinateMetadata) {
+    public CVRPOutput(VehicleRouteMetric vehicleRouteMetric, CostMetric costMetric,
+            CustomerCoordinateMetadata customerCoordinateMetadata, FacilityCoordinateMetadata facilityCoordinateMetadata) {
         super();
-        this.assignmentMetric = assignmentMetric;
+        this.vehicleRouteMetric = vehicleRouteMetric;
         this.costMetric = costMetric;
-        this.facilityCoordinateMetadata = facilityCoordinateMetadata;
         this.customerCoordinateMetadata = customerCoordinateMetadata;
     }
 
     @JsonIgnore
-    public int[] getAssignments() {
-        if (assignmentMetric == null) {
+    public ArrayList<Integer>[] getRoutes() {
+        if (vehicleRouteMetric == null) {
             return null;
         }
-        return assignmentMetric.getAssignments();
+        return vehicleRouteMetric.getRoutes();
     }
 
     @JsonIgnore
@@ -52,19 +52,10 @@ public class FLPOutput extends Output {
     }
 
     @JsonIgnore
-    public Coordinate[] getFacilityCoordinates() {
-        if (facilityCoordinateMetadata == null) {
-            return null;
-        }
-        return facilityCoordinateMetadata.getCoordinates();
-    }
-
-    @JsonIgnore
     public Coordinate[] getCustomerCoordinates() {
         if (customerCoordinateMetadata == null) {
             return null;
         }
         return customerCoordinateMetadata.getCoordinates();
     }
-
 }

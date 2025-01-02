@@ -31,11 +31,11 @@ public class TSPOutput extends Output {
     }
 
     @JsonIgnore
-    public int[] getTour() {
+    public int[] getTours() {
         if (tourMetric == null) {
             return null;
         }
-        return tourMetric.getTour();
+        return tourMetric.getTours();
     }
 
     @JsonIgnore

@@ -14,6 +14,9 @@ import io.micronaut.serde.annotation.Serdeable;
 @NoArgsConstructor
 public class SolveTimeConstraint implements Constraint {
 
+    public static final long DEFAULT_TIME_IN_SECONDS = 60;
+
     private String solveTime;
+    private long timeInSeconds;
 
 }

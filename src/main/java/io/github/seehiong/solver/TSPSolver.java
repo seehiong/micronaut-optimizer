@@ -37,7 +37,7 @@ public class TSPSolver implements Solver<TSPInput, TSPOutput> {
                     .message(String.format("start solving for %s", input.getSolverId()))
                     .build());
 
-            double[][] distances = input.getDistanceMatrix();
+            double[][] distances = input.getDistances();
             Map<CostMetric, TourMetric> optimalSolution = new HashMap<>();
             TourMetric bestTour = new TourMetric(new int[distances.length]);
             CostMetric bestDistance = new CostMetric(Double.MAX_VALUE);
@@ -100,7 +100,7 @@ public class TSPSolver implements Solver<TSPInput, TSPOutput> {
 
                 if (totalDistance.getValue() < bestDistance.getCost()) {
                     bestDistance.setCost(totalDistance.getValue());
-                    bestTour.setTour(optimalTour);
+                    bestTour.setTours(optimalTour);
                     optimalSolution.put(bestDistance, bestTour);
                     log.info("best tour distance: {}", bestDistance); // Print the new best distance
 
@@ -123,13 +123,13 @@ public class TSPSolver implements Solver<TSPInput, TSPOutput> {
 
                 TSPOutput optimalOutput = TSPOutput.builder()
                         .solverId(input.getSolverId())
+                        .solverState(SolverState.SOLVED)
                         .iteration((int) model.getSolver().getSolutionCount())
                         .tourMetric(optimalSolution.get(bestDistance))
                         .costMetric(bestDistance)
                         .build();
                 emitter.next(optimalOutput);
 
-                optimalOutput.setSolverState(SolverState.SOLVED);
                 optimalOutput.setCitiesMetadata(cities);
                 optimalOutput.setTourMetric(optimalSolution.get(bestDistance));
                 progressSubject.onNext(optimalOutput);
@@ -141,5 +141,4 @@ public class TSPSolver implements Solver<TSPInput, TSPOutput> {
 
         }).subscribeOn(Schedulers.boundedElastic());
     }
-
 }
