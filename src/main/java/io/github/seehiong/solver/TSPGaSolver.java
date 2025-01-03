@@ -18,6 +18,7 @@ import io.github.seehiong.model.metadata.CitiesMetadata;
 import io.github.seehiong.model.metric.CostMetric;
 import io.github.seehiong.model.metric.TourMetric;
 import io.github.seehiong.model.output.TSPOutput;
+import io.github.seehiong.solver.base.BaseSolver;
 import io.github.seehiong.utils.CoordUtil;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import jakarta.inject.Singleton;
@@ -27,7 +28,7 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Singleton
-public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
+public class TSPGaSolver extends BaseSolver<TSPInput, TSPOutput> {
 
     // Configuration
     final int POPULATION_SIZE = 100; // Population size
@@ -332,13 +333,15 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
     }
 
     @Override
-    public Flux<Object> solve(TSPInput input, PublishSubject<TSPOutput> progressSubject) {
-        return Flux.create(emitter -> {
+    protected TSPOutput createOutput() {
+        return TSPOutput.builder().build();
+    }
 
-            log.info("starting solving for: {}", input.getSolverId());
-            emitter.next(TSPOutput.builder()
-                    .message(String.format("start solving for %s", input.getSolverId()))
-                    .build());
+    @Override
+    public Flux<Object> solve(TSPInput input, PublishSubject<TSPOutput> publisher) {
+        return Flux.create(emitter -> {
+            TSPOutput output = super.startSolve(input);
+            super.publishNext(emitter, publisher, output);
 
             Instant startTime = Instant.now(); // Record the start time
             fitnessMemo.clear();
@@ -419,15 +422,13 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
                     stagnationCount = 0;
 
                     // Publish progress update
-                    if (progressSubject != null) {
-                        progressSubject.onNext(TSPOutput.builder()
-                                .solverState(SolverState.SOLVING)
-                                .iteration(generation)
-                                .tourMetric(bestIndividual.getTourMetric())
-                                .costMetric(bestIndividual.getCostMetric())
-                                .citiesMetadata(cities)
-                                .build());
-                    }
+                    publisher.onNext(TSPOutput.builder()
+                            .solverState(SolverState.SOLVING)
+                            .iteration(generation)
+                            .tourMetric(bestIndividual.getTourMetric())
+                            .costMetric(bestIndividual.getCostMetric())
+                            .citiesMetadata(cities)
+                            .build());
                     emitter.next(TSPOutput.builder()
                             .costMetric(bestIndividual.getCostMetric())
                             .iteration(generation)
@@ -453,21 +454,13 @@ public class TSPGaSolver implements Solver<TSPInput, TSPOutput> {
             log.info("most efficient path after generations:{}, temperature: {}", generation, temperature);
             if (bestIndividual != null) {
                 bestIndividual.setSolverId(input.getSolverId());
-                bestIndividual.setIteration(generation);
                 bestIndividual.setSolverState(SolverState.SOLVED);
-                emitter.next(bestIndividual);
-
-                if (progressSubject != null) {
-                    bestIndividual.setCitiesMetadata(cities);
-                    progressSubject.onNext(bestIndividual);
-                }
+                bestIndividual.setIteration(generation);
+                bestIndividual.setCitiesMetadata(cities);
+                super.publishNext(emitter, publisher, bestIndividual);
             }
 
-            emitter.complete();
-            if (progressSubject != null) {
-                progressSubject.onComplete();
-            }
-
+            super.publishComplete(emitter, publisher);
         }).subscribeOn(Schedulers.boundedElastic());
     }
 }

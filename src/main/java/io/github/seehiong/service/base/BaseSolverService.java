@@ -1,4 +1,4 @@
-package io.github.seehiong.service;
+package io.github.seehiong.service.base;
 
 import io.github.seehiong.model.Coordinate;
 import io.github.seehiong.model.input.Input;

@@ -3,7 +3,6 @@ package io.github.seehiong.solver;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.ortools.Loader;
 import com.google.ortools.linearsolver.MPConstraint;
 import com.google.ortools.linearsolver.MPObjective;
 import com.google.ortools.linearsolver.MPSolver;
@@ -16,6 +15,7 @@ import io.github.seehiong.model.metadata.FacilityCoordinateMetadata;
 import io.github.seehiong.model.metric.AssignmentMetric;
 import io.github.seehiong.model.metric.CostMetric;
 import io.github.seehiong.model.output.FLPOutput;
+import io.github.seehiong.solver.base.BaseSolver;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -24,23 +24,20 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Singleton
-public class FLPSolver implements Solver<FLPInput, FLPOutput> {
+public class FLPSolver extends BaseSolver<FLPInput, FLPOutput> {
 
-    private static final MPSolver solver;
+    private static final MPSolver solver = MPSolver.createSolver("SCIP");
 
-    static {
-        Loader.loadNativeLibraries();
-        solver = MPSolver.createSolver("SCIP");
+    @Override
+    protected FLPOutput createOutput() {
+        return FLPOutput.builder().build();
     }
 
     @Override
-    public Flux<Object> solve(FLPInput input, PublishSubject<FLPOutput> progressSubject) {
+    public Flux<Object> solve(FLPInput input, PublishSubject<FLPOutput> publisher) {
         return Flux.create(emitter -> {
-
-            log.info("starting solving for: {}", input.getSolverId());
-            emitter.next(FLPOutput.builder()
-                    .message(String.format("start solving for %s", input.getSolverId()))
-                    .build());
+            FLPOutput output = super.startSolve(input);
+            super.publishNext(emitter, publisher, output);
 
             int numFacility = input.getFacilityCoordinates().length;
             int numCustomer = input.getCustomerCoordinates().length;
@@ -114,23 +111,18 @@ public class FLPSolver implements Solver<FLPInput, FLPOutput> {
                 }
                 log.info("solverId: {}", input.getSolverId());
 
-                FLPOutput optimalSolution = FLPOutput.builder()
+                super.publishNext(emitter, publisher, FLPOutput.builder()
                         .solverId(input.getSolverId())
+                        .solverState(SolverState.SOLVED)
                         .assignmentMetric(assignmentMetric)
                         .iteration((int) solver.iterations())
                         .costMetric(new CostMetric(objective.value()))
-                        .build();
-                emitter.next(optimalSolution);
-
-                optimalSolution.setSolverState(SolverState.SOLVED);
-                optimalSolution.setFacilityCoordinateMetadata(new FacilityCoordinateMetadata(input.getFacilityCoordinates()));
-                optimalSolution.setCustomerCoordinateMetadata(new CustomerCoordinateMetadata(input.getCustomerCoordinates()));
-                progressSubject.onNext(optimalSolution);
+                        .facilityCoordinateMetadata(new FacilityCoordinateMetadata(input.getFacilityCoordinates()))
+                        .customerCoordinateMetadata(new CustomerCoordinateMetadata(input.getCustomerCoordinates()))
+                        .build());
             }
 
-            emitter.complete();
-            progressSubject.onComplete();
-
+            super.publishComplete(emitter, publisher);
         }).subscribeOn(Schedulers.boundedElastic());
     }
 }

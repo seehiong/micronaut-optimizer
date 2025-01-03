@@ -6,7 +6,7 @@ import java.util.Map;
 import io.github.seehiong.model.ProblemType;
 import io.github.seehiong.model.input.Input;
 import io.github.seehiong.model.output.Output;
-import io.github.seehiong.service.SolverService;
+import io.github.seehiong.service.base.SolverService;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;

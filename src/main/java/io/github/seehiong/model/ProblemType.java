@@ -4,7 +4,8 @@ public enum ProblemType {
     TSP,
     TSP_GA,
     FLP,
-    CVRP;
+    CVRP,
+    CVRP_MIP;
 
     public static ProblemType fromString(String problemType) {
         try {

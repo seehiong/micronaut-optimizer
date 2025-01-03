@@ -17,6 +17,7 @@ import io.github.seehiong.model.metric.CostMetric;
 import io.github.seehiong.model.metric.TourMetric;
 import io.github.seehiong.model.objective.MinMaxEnum;
 import io.github.seehiong.model.output.TSPOutput;
+import io.github.seehiong.solver.base.BaseSolver;
 import io.github.seehiong.utils.CoordUtil;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import jakarta.inject.Singleton;
@@ -26,16 +27,18 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Singleton
-public class TSPSolver implements Solver<TSPInput, TSPOutput> {
+public class TSPSolver extends BaseSolver<TSPInput, TSPOutput> {
 
     @Override
-    public Flux<Object> solve(TSPInput input, PublishSubject<TSPOutput> progressSubject) {
-        return Flux.create(emitter -> {
+    protected TSPOutput createOutput() {
+        return TSPOutput.builder().build();
+    }
 
-            log.info("Starting solving for: {}", input.getSolverId());
-            emitter.next(TSPOutput.builder()
-                    .message(String.format("start solving for %s", input.getSolverId()))
-                    .build());
+    @Override
+    public Flux<Object> solve(TSPInput input, PublishSubject<TSPOutput> publisher) {
+        return Flux.create(emitter -> {
+            TSPOutput output = super.startSolve(input);
+            super.publishNext(emitter, publisher, output);
 
             double[][] distances = input.getDistances();
             Map<CostMetric, TourMetric> optimalSolution = new HashMap<>();
@@ -113,7 +116,7 @@ public class TSPSolver implements Solver<TSPInput, TSPOutput> {
                     bestOutput.setSolverState(SolverState.SOLVING);
                     bestOutput.setCitiesMetadata(cities);
                     bestOutput.setTourMetric(optimalSolution.get(bestDistance));
-                    progressSubject.onNext(bestOutput);
+                    publisher.onNext(bestOutput);
                 }
             }
 
@@ -121,24 +124,18 @@ public class TSPSolver implements Solver<TSPInput, TSPOutput> {
                 bestDistance.setCost(model.getSolver().getBestSolutionValue().doubleValue());
                 log.info("optimal tour distance: {}", bestDistance);
 
-                TSPOutput optimalOutput = TSPOutput.builder()
+                super.publishNext(emitter, publisher, TSPOutput.builder()
                         .solverId(input.getSolverId())
                         .solverState(SolverState.SOLVED)
                         .iteration((int) model.getSolver().getSolutionCount())
                         .tourMetric(optimalSolution.get(bestDistance))
                         .costMetric(bestDistance)
-                        .build();
-                emitter.next(optimalOutput);
-
-                optimalOutput.setCitiesMetadata(cities);
-                optimalOutput.setTourMetric(optimalSolution.get(bestDistance));
-                progressSubject.onNext(optimalOutput);
-
+                        .citiesMetadata(cities)
+                        .tourMetric(optimalSolution.get(bestDistance))
+                        .build());
             }
 
-            emitter.complete();
-            progressSubject.onComplete();
-
+            super.publishComplete(emitter, publisher);
         }).subscribeOn(Schedulers.boundedElastic());
     }
 }

@@ -3,7 +3,6 @@ package io.github.seehiong.solver;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.ortools.Loader;
 import com.google.ortools.constraintsolver.Assignment;
 import com.google.ortools.constraintsolver.FirstSolutionStrategy;
 import com.google.ortools.constraintsolver.LocalSearchMetaheuristic;
@@ -13,14 +12,12 @@ import com.google.ortools.constraintsolver.RoutingSearchParameters;
 import com.google.ortools.constraintsolver.main;
 import com.google.protobuf.Duration;
 
-import io.github.seehiong.model.Coordinate;
 import io.github.seehiong.model.SolverState;
 import io.github.seehiong.model.input.CVRPInput;
-import io.github.seehiong.model.metadata.CustomerCoordinateMetadata;
 import io.github.seehiong.model.metric.CostMetric;
 import io.github.seehiong.model.metric.VehicleRouteMetric;
 import io.github.seehiong.model.output.CVRPOutput;
-import io.github.seehiong.utils.CoordUtil;
+import io.github.seehiong.solver.base.BaseCVRPSolver;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -29,35 +26,13 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Singleton
-public class CVRPSolver implements Solver<CVRPInput, CVRPOutput> {
-
-    static {
-        // Load the OR-Tools native library
-        Loader.loadNativeLibraries();
-    }
+public class CVRPSolver extends BaseCVRPSolver {
 
     @Override
-    public Flux<Object> solve(CVRPInput input, PublishSubject<CVRPOutput> progressSubject) {
+    public Flux<Object> solve(CVRPInput input, PublishSubject<CVRPOutput> publisher) {
         return Flux.create(emitter -> {
-
-            log.info("starting solving for: {}", input.getSolverId());
-            CVRPOutput initialOutput = CVRPOutput.builder()
-                    .message(String.format("start solving for %s", input.getSolverId()))
-                    .solverState(SolverState.SOLVING)
-                    .build();
-            emitter.next(initialOutput);
-
-            Coordinate[] coordinates;
-            if (input.getCoordinates() != null) {
-                coordinates = input.getCoordinates();
-            } else {
-                coordinates = CoordUtil.getCoordinates(input.getDistances());
-            }
-            CustomerCoordinateMetadata customerCoord = new CustomerCoordinateMetadata(coordinates);
-            System.arraycopy(coordinates, 0, customerCoord.getCoordinates(), 0, coordinates.length);
-
-            initialOutput.setCustomerCoordinateMetadata(customerCoord);
-            progressSubject.onNext(initialOutput);
+            CVRPOutput output = super.startSolve(input);
+            super.publishNext(emitter, publisher, output);
 
             RoutingIndexManager manager = new RoutingIndexManager(input.getDistances().length, input.getVehicleNumber(), 0); //defaults to 0 for depot
             // Create Routing Model
@@ -116,28 +91,24 @@ public class CVRPSolver implements Solver<CVRPInput, CVRPOutput> {
                     vehicleMap.put(i, route);
                     routes.getRoutes()[i].add(0); //return to depot
                 }
-                String message = String.format("result: %s", vehicleMap.toString());
+
+                String message = String.format("vehicleMap: %s", vehicleMap.toString());
                 log.info(message);
 
-                CVRPOutput optimalSolution = CVRPOutput.builder()
+                super.publishNext(emitter, publisher, CVRPOutput.builder()
                         .solverId(input.getSolverId())
+                        .solverState(SolverState.SOLVED)
                         .message(message)
                         .vehicleRouteMetric(routes)
                         .costMetric(new CostMetric(solution.objectiveValue()))
-                        .build();
-                emitter.next(optimalSolution);
-
-                optimalSolution.setSolverState(SolverState.SOLVED);
-                optimalSolution.setCustomerCoordinateMetadata(customerCoord);
-                progressSubject.onNext(optimalSolution);
+                        .customerCoordinateMetadata(super.customerCoord)
+                        .build());
 
             } else {
                 emitter.error(new RuntimeException("No solution found"));
             }
 
-            emitter.complete();
-            progressSubject.onComplete();
-
+            super.publishComplete(emitter, publisher);
         }).subscribeOn(Schedulers.boundedElastic());
     }
 }

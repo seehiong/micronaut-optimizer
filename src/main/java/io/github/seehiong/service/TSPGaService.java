@@ -1,5 +1,6 @@
 package io.github.seehiong.service;
 
+import io.github.seehiong.service.base.BaseTSPService;
 import io.github.seehiong.solver.TSPGaSolver;
 import io.micronaut.serde.ObjectMapper;
 import jakarta.inject.Named;

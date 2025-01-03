@@ -1,4 +1,4 @@
-package io.github.seehiong.solver;
+package io.github.seehiong.solver.base;
 
 import io.github.seehiong.model.input.Input;
 import io.github.seehiong.model.output.Output;

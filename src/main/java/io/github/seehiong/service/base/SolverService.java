@@ -1,4 +1,4 @@
-package io.github.seehiong.service;
+package io.github.seehiong.service.base;
 
 import java.io.IOException;
 

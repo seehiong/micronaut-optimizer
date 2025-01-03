@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.github.seehiong.model.ProblemType;
-import io.github.seehiong.service.SolverService;
+import io.github.seehiong.service.base.SolverService;
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Named;

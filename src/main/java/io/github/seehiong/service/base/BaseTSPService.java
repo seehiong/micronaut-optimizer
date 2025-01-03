@@ -1,4 +1,4 @@
-package io.github.seehiong.service;
+package io.github.seehiong.service.base;
 
 import java.io.IOException;
 import java.util.List;
@@ -7,7 +7,7 @@ import io.github.seehiong.controller.ProgressController;
 import io.github.seehiong.model.constraint.DistanceMatrixConstraint;
 import io.github.seehiong.model.input.TSPInput;
 import io.github.seehiong.model.output.TSPOutput;
-import io.github.seehiong.solver.Solver;
+import io.github.seehiong.solver.base.Solver;
 import io.github.seehiong.utils.DisposableUtil;
 import io.github.seehiong.utils.FileUtil;
 import io.micronaut.http.multipart.CompletedFileUpload;
@@ -39,7 +39,6 @@ public abstract class BaseTSPService extends BaseSolverService<TSPInput, TSPOutp
 
     @Override
     public Flux<Object> solve(TSPInput input) {
-        System.out.println("Solving TSP " + input.getSolverId());
         PublishSubject<TSPOutput> progressSubject = PublishSubject.create();
         ProgressController.activeSolvers.put(input.getSolverId().toString(), progressSubject);
 
