@@ -14,6 +14,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class DistanceMatrixConstraint implements Constraint {
 
-    private double[][] distances;
-
+    private double[][] distances; // distance matrix between each other coordinates
 }

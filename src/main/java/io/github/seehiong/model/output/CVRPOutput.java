@@ -23,9 +23,9 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class CVRPOutput extends Output {
 
-    private VehicleRouteMetric vehicleRouteMetric;
-    private CostMetric costMetric;
-    private CustomerCoordinateMetadata customerCoordinateMetadata;
+    private VehicleRouteMetric vehicleRouteMetric; // List of routes for each vehicle
+    private CostMetric costMetric; // Total cost or length of the routes
+    private CustomerCoordinateMetadata customerCoordinateMetadata; // Coordinates of customers
 
     public CVRPOutput(VehicleRouteMetric vehicleRouteMetric, CostMetric costMetric,
             CustomerCoordinateMetadata customerCoordinateMetadata, FacilityCoordinateMetadata facilityCoordinateMetadata) {

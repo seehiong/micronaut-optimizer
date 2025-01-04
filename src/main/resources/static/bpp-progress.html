@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>BPP Bin Allocation</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #bppChart {
+            background-color: #f0f0f0;
+            width: 800px !important;
+            height: 600px !important;
+        }
+
+        .slider-container {
+            margin: 10px 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            transform: translateX(-50%);
+            bottom: 100%;
+            margin-bottom: 5px;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #333;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.4em;
+            font-size: 75%;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+            color: #fff;
+            background-color: green;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .badge-solving {
+            background-color: red;
+        }
+
+        .badge-solved {
+            background-color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>BPP Bin Allocation</h1>
+    <div>
+        <span id="solverStateBadge" class="badge">Solved</span>
+    </div>
+    <div id="totalWeight"></div>
+    <div id="totalBins"></div>
+    <canvas id="bppChart" width="800" height="600"></canvas>
+
+    <script>
+        // Global variables to store chart instance
+        let chartInstance = null;
+
+        // Function to get query parameter by name
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Get the solverId from the URL query parameters
+        const solverId = getQueryParam('solverId');
+
+        if (!solverId) {
+            document.getElementById('totalWeight').innerText = 'Solver ID not provided in the URL.';
+        } else {
+            // Fetch the latest output on first load
+            fetch(`/progress/latest/${solverId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Received latest data:', data);
+
+                    // Initialize chart with the latest data
+                    initializeChart(data.binMetric);
+                    updateSolverStateBadge(data.solverState);
+                    displayTotalWeight(data.binMetric.weight);
+                    displayTotalBins(data.binMetric.items.length);
+                })
+                .catch(error => console.error('Error fetching latest data:', error));
+
+            const eventSource = new EventSource(`/progress/${solverId}`);
+
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                console.log('Received data:', data);
+
+                // Initialize chart only once when first data arrives
+                if (!chartInstance) {
+                    initializeChart(data.binMetric);
+                }
+
+                updateSolverStateBadge(data.solverState);
+                displayTotalWeight(data.binMetric.weight);
+                displayTotalBins(data.binMetric.items.length);
+            };
+        }
+
+        // Function to initialize the chart with bin data
+        function initializeChart(binMetric) {
+            const ctx = document.getElementById('bppChart').getContext('2d');
+            const binLabels = binMetric.items.map((_, index) => `Bin ${index + 1}`);
+            const binWeights = binMetric.weight;
+
+            const chartData = {
+                labels: binLabels,
+                datasets: [
+                    {
+                        label: 'Bin Weights',
+                        data: binWeights,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue color for bins
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            };
+
+            const chartOptions = {
+                responsive: false,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Weight'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Bins'
+                        }
+                    }
+                }
+            };
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: chartOptions
+            });
+        }
+
+        // Function to display the total weight
+        function displayTotalWeight(weights) {
+            const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+            const totalWeightDiv = document.getElementById('totalWeight');
+            totalWeightDiv.innerHTML = `<h4>Total Weight: ${totalWeight}</h4>`;
+        }
+
+        // Function to display the total number of bins used
+        function displayTotalBins(binCount) {
+            const totalBinsDiv = document.getElementById('totalBins');
+            totalBinsDiv.innerHTML = `<h4>Total Bins Used: ${binCount}</h4>`;
+        }
+
+        // Function to update the badge based on solverState
+        function updateSolverStateBadge(solverState) {
+            const badge = document.getElementById('solverStateBadge');
+            if (solverState === 'SOLVING') {
+                badge.textContent = 'Solving';
+                badge.classList.remove('badge-solved');
+                badge.classList.add('badge-solving');
+            } else if (solverState === 'SOLVED') {
+                badge.textContent = 'Solved';
+                badge.classList.remove('badge-solving');
+                badge.classList.add('badge-solved');
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -21,10 +21,10 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class FLPOutput extends Output {
 
-    private AssignmentMetric assignmentMetric;
-    private CostMetric costMetric;
-    private FacilityCoordinateMetadata facilityCoordinateMetadata;
-    private CustomerCoordinateMetadata customerCoordinateMetadata;
+    private AssignmentMetric assignmentMetric; // List of facility assignments for each customer
+    private CostMetric costMetric; // Total setup cost of the facility
+    private FacilityCoordinateMetadata facilityCoordinateMetadata; // Coordinates of facilities
+    private CustomerCoordinateMetadata customerCoordinateMetadata; // Coordinates of customers
 
     public FLPOutput(AssignmentMetric assignmentMetric, CostMetric costMetric,
             FacilityCoordinateMetadata facilityCoordinateMetadata, CustomerCoordinateMetadata customerCoordinateMetadata) {
@@ -66,5 +66,4 @@ public class FLPOutput extends Output {
         }
         return customerCoordinateMetadata.getCoordinates();
     }
-
 }

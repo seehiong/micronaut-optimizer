@@ -7,7 +7,6 @@ import io.github.seehiong.model.constraint.DistanceMatrixConstraint;
 import io.github.seehiong.model.constraint.FacilityCapacityConstraint;
 import io.github.seehiong.model.constraint.FacilityCoordinateConstraint;
 import io.github.seehiong.model.constraint.FacilityCostConstraint;
-import io.github.seehiong.model.objective.MinMaxEnum;
 import io.github.seehiong.model.objective.MinMaxObjective;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.serde.annotation.Serdeable;
@@ -23,26 +22,25 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class FLPInput extends Input {
 
-    private FacilityCostConstraint facilityCostConstraint;
-    private FacilityCapacityConstraint facilityCapacityConstraint;
-    private FacilityCoordinateConstraint facilityCoordinateConstraint;
-    private CustomerDemandConstraint customerDemandConstraint;
-    private CustomerCoordinateConstraint customerCoordinateConstraint;
-    private DistanceMatrixConstraint distanceMatrixConstraint;
-    private MinMaxObjective minMaxObjective;
+    private FacilityCostConstraint facilityCostConstraint; // Setup cost of each facility
+    private FacilityCapacityConstraint facilityCapacityConstraint; // Capacity of each facility
+    private FacilityCoordinateConstraint facilityCoordinateConstraint; // Coordinates of facilities
+    private CustomerDemandConstraint customerDemandConstraint; // Demand of each customer
+    private CustomerCoordinateConstraint customerCoordinateConstraint; // Coordinates of customers
+    private DistanceMatrixConstraint distanceMatrixConstraint; // Distance matrix between facilities and customers
 
-    public FLPInput(FacilityCostConstraint facilityCostConstraint,
+    public FLPInput(MinMaxObjective minMaxObjective, FacilityCostConstraint facilityCostConstraint,
             FacilityCapacityConstraint facilityCapacityConstraint, FacilityCoordinateConstraint facilityCoordinateConstraint,
             CustomerDemandConstraint customerDemandConstraint, CustomerCoordinateConstraint customerCoordinateConstraint,
-            DistanceMatrixConstraint distanceMatrixConstraint, MinMaxObjective minMaxObjective) {
+            DistanceMatrixConstraint distanceMatrixConstraint) {
         super();
+        super.minMaxObjective = minMaxObjective;
         this.facilityCostConstraint = facilityCostConstraint;
         this.facilityCapacityConstraint = facilityCapacityConstraint;
         this.facilityCoordinateConstraint = facilityCoordinateConstraint;
         this.customerDemandConstraint = customerDemandConstraint;
         this.customerCoordinateConstraint = customerCoordinateConstraint;
         this.distanceMatrixConstraint = distanceMatrixConstraint;
-        this.minMaxObjective = minMaxObjective;
     }
 
     public double[] getCosts() {
@@ -85,12 +83,5 @@ public class FLPInput extends Input {
             return null;
         }
         return distanceMatrixConstraint.getDistances();
-    }
-
-    public MinMaxEnum getMinMaxEnum() {
-        if (minMaxObjective == null) {
-            return null;
-        }
-        return minMaxObjective.getMinMaxEnum();
     }
 }

@@ -19,9 +19,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class TSPOutput extends Output {
 
-    private TourMetric tourMetric;
-    private CostMetric costMetric;
-    private CitiesMetadata citiesMetadata;
+    private TourMetric tourMetric; // List of tours
+    private CostMetric costMetric; // Total cost or length of the hamiltonian cycle
+    private CitiesMetadata citiesMetadata; // Coordinates of cities
 
     public TSPOutput(TourMetric tourMetric, CostMetric costMetric, CitiesMetadata citiesMetadata) {
         super();
@@ -53,5 +53,4 @@ public class TSPOutput extends Output {
         }
         return citiesMetadata.getCities();
     }
-
 }

@@ -16,14 +16,32 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class VehicleConstraint implements Constraint {
 
-    private int vehicleNumber;
-    private long capacity;
-    private long[] capacities;
+    private int vehicleNumber; // number of vehicles
+    private long capacity;  // same capacity for every vehicle
+    private long[] capacities; // capacity of each vehicle
 
+    /**
+     * For single capacity
+     *
+     * @param vehicleNumber
+     * @param capacity
+     */
     public VehicleConstraint(int vehicleNumber, long capacity) {
         this.vehicleNumber = vehicleNumber;
         this.capacity = capacity;
         this.capacities = new long[vehicleNumber];
         Arrays.fill(this.capacities, capacity);
+    }
+
+    /**
+     * For multiple capacities
+     *
+     * @param vehicleNumber
+     * @param capacities
+     */
+    public VehicleConstraint(int vehicleNumber, long[] capacities) {
+        this.vehicleNumber = vehicleNumber;
+        this.capacities = capacities;
+        this.capacity = 0; // not used
     }
 }

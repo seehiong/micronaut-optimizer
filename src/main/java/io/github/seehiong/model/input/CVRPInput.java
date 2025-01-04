@@ -20,21 +20,20 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class CVRPInput extends Input {
 
-    private VehicleConstraint vehicleConstraint;
-    private CustomerDemandConstraint customerDemandConstraint;
-    private CustomerCoordinateConstraint customerCoordinateConstraint;
-    private DistanceMatrixConstraint distanceMatrixConstraint;
-    private SolveTimeConstraint solveTimeConstraint;
+    private VehicleConstraint vehicleConstraint; // Number of vehicles and their capacities
+    private CustomerDemandConstraint customerDemandConstraint; // Demand of each customer
+    private CustomerCoordinateConstraint customerCoordinateConstraint; // Coordinates of customers
+    private DistanceMatrixConstraint distanceMatrixConstraint; // Distance matrix between customers and depot
 
-    public CVRPInput(VehicleConstraint vehicleConstraint,
+    public CVRPInput(SolveTimeConstraint solveTimeConstraint, VehicleConstraint vehicleConstraint,
             CustomerDemandConstraint customerDemandConstraint, CustomerCoordinateConstraint customerCoordinateConstraint,
-            DistanceMatrixConstraint distanceMatrixConstraint, SolveTimeConstraint solveTimeConstraint) {
+            DistanceMatrixConstraint distanceMatrixConstraint) {
         super();
+        super.solveTimeConstraint = solveTimeConstraint;
         this.vehicleConstraint = vehicleConstraint;
         this.customerDemandConstraint = customerDemandConstraint;
         this.customerCoordinateConstraint = customerCoordinateConstraint;
         this.distanceMatrixConstraint = distanceMatrixConstraint;
-        this.solveTimeConstraint = solveTimeConstraint;
     }
 
     public int getVehicleNumber() {
@@ -70,12 +69,5 @@ public class CVRPInput extends Input {
             return null;
         }
         return distanceMatrixConstraint.getDistances();
-    }
-
-    public long getTimeInSeconds() {
-        if (solveTimeConstraint == null) {
-            return SolveTimeConstraint.DEFAULT_TIME_IN_SECONDS;
-        }
-        return solveTimeConstraint.getTimeInSeconds();
     }
 }

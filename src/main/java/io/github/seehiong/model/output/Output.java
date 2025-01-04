@@ -19,9 +19,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public abstract class Output {
 
-    protected UUID solverId;
-    protected SolverState solverState;
-    protected String message;
-    protected int iteration;
-
+    protected UUID solverId; // unique identifier of the solver instance
+    protected SolverState solverState; // state of the solver
+    protected String message; // generic message
+    protected int iteration; // number of iterations
+    protected long elapsedTime; // in milliseconds
 }

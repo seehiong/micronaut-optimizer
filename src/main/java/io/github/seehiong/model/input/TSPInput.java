@@ -2,7 +2,6 @@ package io.github.seehiong.model.input;
 
 import io.github.seehiong.model.constraint.DistanceMatrixConstraint;
 import io.github.seehiong.model.constraint.SolveTimeConstraint;
-import io.github.seehiong.model.objective.MinMaxEnum;
 import io.github.seehiong.model.objective.MinMaxObjective;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.serde.annotation.Serdeable;
@@ -18,16 +17,14 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class TSPInput extends Input {
 
-    private DistanceMatrixConstraint distanceMatrixConstraint;
-    private SolveTimeConstraint solveTimeConstraint;
-    private MinMaxObjective minMaxObjective;
+    private DistanceMatrixConstraint distanceMatrixConstraint;  // Distance matrix between locations
 
-    public TSPInput(DistanceMatrixConstraint distanceMatrixConstraint,
-            SolveTimeConstraint solveTimeConstraint, MinMaxObjective minMaxObjective) {
+    public TSPInput(DistanceMatrixConstraint distanceMatrixConstraint, MinMaxObjective minMaxObjective,
+            SolveTimeConstraint solveTimeConstraint) {
         super();
+        super.minMaxObjective = minMaxObjective;
+        super.solveTimeConstraint = solveTimeConstraint;
         this.distanceMatrixConstraint = distanceMatrixConstraint;
-        this.solveTimeConstraint = solveTimeConstraint;
-        this.minMaxObjective = minMaxObjective;
     }
 
     public double[][] getDistances() {
@@ -37,17 +34,4 @@ public class TSPInput extends Input {
         return distanceMatrixConstraint.getDistances();
     }
 
-    public String getSolveTime() {
-        if (solveTimeConstraint == null) {
-            return null;
-        }
-        return solveTimeConstraint.getSolveTime();
-    }
-
-    public MinMaxEnum getMinMaxEnum() {
-        if (minMaxObjective == null) {
-            return null;
-        }
-        return minMaxObjective.getMinMaxEnum();
-    }
 }

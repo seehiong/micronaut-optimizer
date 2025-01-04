@@ -1,11 +1,12 @@
 package io.github.seehiong.model;
 
 public enum ProblemType {
-    TSP,
-    TSP_GA,
-    FLP,
-    CVRP,
-    CVRP_MIP;
+    TSP, // Travelling Salesman Problem
+    TSP_GA, // Travelling Salesman Problem with Genetic Algorithm
+    FLP, // Facility Location Problem
+    CVRP, // Capacitated Vehicle Routing Problem
+    CVRP_MIP, // Capacitated Vehicle Routing Problem with Mixed Integer Programming
+    BPP; // Bin Packing Problem
 
     public static ProblemType fromString(String problemType) {
         try {

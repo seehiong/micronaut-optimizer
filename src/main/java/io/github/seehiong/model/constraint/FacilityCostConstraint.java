@@ -14,6 +14,5 @@ import io.micronaut.serde.annotation.Serdeable;
 @NoArgsConstructor
 public class FacilityCostConstraint implements Constraint {
 
-    private double[] costs;
-
+    private double[] costs; // cost of each facility
 }

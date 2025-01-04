@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FacilityCapacityConstraint implements Constraint {
+public class ItemWeightConstraint implements Constraint {
 
-    private int[] capacities; // capacity of each facility
+    private int[] weights; // weight of each item
 }

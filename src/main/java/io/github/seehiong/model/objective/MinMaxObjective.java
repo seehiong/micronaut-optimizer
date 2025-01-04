@@ -14,6 +14,5 @@ import io.micronaut.serde.annotation.Serdeable;
 @NoArgsConstructor
 public class MinMaxObjective implements Objective {
 
-    private MinMaxEnum minMaxEnum;
-
+    private MinMaxEnum minMaxEnum; // Minimize or maximize
 }

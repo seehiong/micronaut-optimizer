@@ -14,6 +14,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CustomerDemandConstraint implements Constraint {
 
-    private int[] demands;
-
+    private int[] demands; // demand of each customer
 }
