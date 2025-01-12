@@ -16,3 +16,5 @@ out/
 node_modules/
 vue-app/node_modules/
 vue-app/dist/
+yarn.lock
+package-lock.json
