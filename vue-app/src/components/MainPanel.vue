@@ -1,11 +1,11 @@
 <template>
   <div class="main-panel" @dragover.prevent @mousemove="onMouseMove">
     <!-- Render nodes using NodeManager -->
-    <NodeManager :nodes="nodes" :lines="lines" @start-drag="onStartDrag" @start-link="onStartLink" />
+    <NodeManager :nodes="nodes" @start-drag="onStartDrag" @start-link="onStartLink" />
 
     <!-- Render lines using LinkManager -->
     <LinkManager ref="linkManager" :nodes="nodes" :lines="lines" :linking="linking" :mousePosition="mousePosition"
-      :leftPanelWidth="leftPanelWidth" :redrawTrigger="redrawTrigger" @start-link="onStartLink" @add-line="onAddLine"
+      :redrawTrigger="redrawTrigger" @start-link="onStartLink" @add-line="onAddLine"
       @update-linking="onUpdateLinking" />
 
     <!-- Render DragManager -->
@@ -14,9 +14,10 @@
 </template>
 
 <script>
-import NodeManager from "./NodeManager.vue";
-import LinkManager from "./LinkManager.vue";
-import DragManager from "./DragManager.vue";
+import { Node } from '@/models/Node';
+import NodeManager from "@/components/managers/NodeManager.vue";
+import LinkManager from "@/components/managers/LinkManager.vue";
+import DragManager from "@/components/managers/DragManager.vue";
 
 export default {
   components: {
@@ -28,27 +29,15 @@ export default {
     nodes: {
       type: Array,
       required: true,
+      validator: (value) => value.every(node => node instanceof Node)
     },
-    lines: {
-      type: Array,
-      required: true,
-    },
-    linking: {
-      type: Object,
-      required: true,
-    },
-    mousePosition: {
-      type: Object,
-      required: true,
-    },
-    leftPanelWidth: {
-      type: Number,
-      required: true,
-    },
+    lines: { type: Array, required: true },
+    linking: { type: Object, required: true },
+    mousePosition: { type: Object, required: true },
   },
   data() {
     return {
-      redrawTrigger: 0, // Initialize redrawTrigger
+      redrawTrigger: 0,
     };
   },
   methods: {
@@ -68,8 +57,7 @@ export default {
       this.$emit("update-linking", linkingState);
     },
     onRedrawLine() {
-      // Increment the redrawTrigger to force a redraw of ConnectionLine components
-      this.redrawTrigger = (this.redrawTrigger + 1) % 1000; // Reset after reaching 1000
+      this.redrawTrigger = (this.redrawTrigger + 1) % 1000;
     },
   },
 };

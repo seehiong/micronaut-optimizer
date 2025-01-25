@@ -10,27 +10,44 @@ The folder structure of the `vue-app` is as follows:
 
 ```text
 vue-app/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   │   ├── inputs/
+│   │   │   ├── KeyInput.vue
+│   │   │   ├── SubkeyInput.vue
+│   │   │   └── TextInput.vue
+│   │   ├── managers/
+│   │   │   ├── DragManager.vue
+│   │   │   ├── InputManager.vue
+│   │   │   ├── LinkManager.vue
+│   │   │   ├── NodeManager.vue
+│   │   │   └── OutputManager.vue
+│   │   ├── outputs/
+│   │   │   ├── TextOutput.vue
+│   │   │   └── TSPChartOutput.vue
+│   │   ├── ConnectionLine.vue
+│   │   ├── Inport.vue
+│   │   ├── LeftPanel.vue
+│   │   ├── LocalPersistent.vue
+│   │   ├── MainPanel.vue
+│   │   ├── OutPort.vue
+│   │   └── WorkflowNode.vue
+│   ├── models/
+│   │   └── Node.js
+│   ├── store/
+│   │   └── index.js
+│   ├── utils/
+│   │   ├── lineConnectionUtils.vue
+│   │   ├── nodeUtils.vue
+│   │   └── transformUtils.js
+│   ├── App.vue
+│   └── main.js
 ├── babel.config.js
 ├── jsconfig.json
 ├── package.json
 ├── README.md
-├── src/
-│   ├── App.vue
-│   ├── components/
-│   │   ├── ConnectionLine.vue
-│   │   ├── ConnectionValidator.vue
-│   │   ├── DragManager.vue
-│   │   ├── LeftPanel.vue
-│   │   ├── LinkManager.vue
-│   │   ├── LocalPersistent.vue
-│   │   ├── MainPanel.vue
-│   │   ├── NodeManager.vue
-│   │   ├── NodePort.vue
-│   │   ├── TransformManager.vue
-│   │   └── WorkflowNode.vue
-│   ├── main.js
-│   └── assets/
-├── vue.config.js
+└── vue.config.js
 ```
 
 ## Key Concepts and Features
@@ -56,11 +73,15 @@ vue-app/
 
 * Users can visually design workflows by dragging nodes and connecting them.
 
-### 3. Data Persistence
+### 3. Data Persistence with IndexedDB
 
-* The `LocalPersistent.vue` component handles **saving and loading** the application state to and from **local storage**.
+* The `LocalPersistent.vue` component now uses **IndexedDB** for saving and loading the application state, replacing `localStorage`.
 
-* This ensures that users can save their workflows and resume work later without losing progress.
+* This ensures that users can save their workflows and resume work later without losing progress, even with large datasets.
+
+* Features:
+    * **Compression**: Data is compressed using pako before saving to reduce storage size.
+    * **Efficient Storage**: IndexedDB allows for larger datasets compared to localStorage.
 
 ### 4. API Integration
 
@@ -89,7 +110,19 @@ vue-app/
 
 * Prevents invalid data flows and ensures the integrity of the workflow.
 
-### 7. Configuration
+* Features:
+    * **Type checking**: Ensures that only compatible nodes can be connected.
+    * **Port validation**: Prevents multiple connections to the same input port.
+
+### 7. Consistent Line Rendering
+
+* The `ConnectionLine.vue` component has been updated to ensure consistent rendering of lines between nodes.
+
+* Key improvements:
+    * **Relative positioning**: Lines are now rendered relative to the SVG container, ensuring consistency across viewport changes.
+    * **Dynamic updates**: Lines are re-rendered when the viewport is resized or scrolled.
+
+### 8. Configuration
 
 * The `vue.config.js` file includes configuration for the **development server** and **webpack**.
 
@@ -166,7 +199,7 @@ yarn lint
 
 ## Screenshot
 
-![Optimizer-Vue-App](src/assets/micronaut-optimizer-vue-app-tsp-problem.png)
+![Optimizer-Vue-App](images/micronaut-optimizer-vue-app-tsp-problem.png)
 
 ## Configuration Reference
 
@@ -180,6 +213,8 @@ For more details on configuration, see the [Vue CLI Configuration Reference](htt
 
 * **Modular Architecture**: Components are designed for reusability and scalability.
 
-* **Data Persistence**: Save and load workflows using local storage.
+* **Data Persistence**: Save and load workflows using IndexedDB, even with large datasets.
 
 * **Robust Error Handling**: Ensures smooth operation even in edge cases.
+
+* **Consistent Line Rendering**: Lines between nodes are rendered consistently across viewport changes.

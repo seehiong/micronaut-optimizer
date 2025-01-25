@@ -1,189 +1,174 @@
 <template>
-  <div class="node" :style="{ left: x + 'px', top: y + 'px' }" :data-node-id="id" @mousedown="onStartDrag">
-    <!-- Input text connector -->
-    <svg v-if="textInput" class="connector-line left-connector" width="220" height="100">
-      <line x1="200" y1="50" x2="220" y2="50" stroke="#42b983" stroke-width="2" />
-    </svg>
-
-    <!-- Output text connector -->
-    <svg v-if="textOutput" class="connector-line right-connector" width="220" height="100">
-      <line x1="0" y1="50" x2="20" y2="50" stroke="#42b983" stroke-width="2" />
-    </svg>
-
-    <!-- Input Points -->
-    <BasePoint v-for="(input, index) in inputTypes" :key="'input-' + index" :id="`${id}-i${index}`" type="input"
-      :nodeWidth="200" :offsetY="getPortPosition(index, inputTypes.length)" :label="input" @start-link="onStartLink" />
-
+  <div class="node" :style="{ left: node.x + 'px', top: node.y + 'px' }" :data-node-id="node.id"
+    @mousedown="onStartDrag">
     <!-- Node Content -->
     <div class="node-rectangle">
-      <div class="node-name" :style="{ fontSize: fontSize + 'px' }" :title="name">
+      <div class="node-name" :style="{ fontSize: fontSize + 'px' }" :title="node.name">
         {{ truncatedName }}
       </div>
       <div class="left-section">
-        <!-- Textarea for textInput nodes -->
-        <textarea v-if="textInput" v-model="userInput" placeholder="Enter text here..." class="text-input-area"
-          spellcheck="false" @mousedown.stop></textarea>
       </div>
       <div class="right-section">
-        <!-- Trigger Button -->
-        <button v-if="triggerAction !== 'A'" class="trigger-button"
-          :title="triggerAction === 'T' ? 'Transform' : 'Optimize'" @click="onTrigger">
-          {{ triggerAction }}
+        <button v-if="node.triggerAction !== 'A'" class="trigger-button" :title="actionTitle" @click="onTrigger">
+          {{ node.triggerAction }}
         </button>
-      </div>
-      <!-- Add output textarea section -->
-      <div class="output-section">
-        <textarea v-if="textOutput" :value="nodeDataToString" @input="onUpdateNodeData" placeholder="Output text..."
-          class="text-output-area" spellcheck="false" @mousedown.stop readonly></textarea>
       </div>
     </div>
 
-    <!-- Output Points -->
-    <BasePoint v-for="(output, index) in outputTypes" :key="'output-' + index" :id="`${id}-o${index}`" type="output"
-      :nodeWidth="200" :offsetY="getPortPosition(index, outputTypes.length)" :label="output"
+    <!-- Input Manager -->
+    <InputManager :id="node.id" :hasTextInput="node.hasTextInput" :hasKeyInput="node.hasKeyInput"
+      :hasSubkeyInput="node.hasSubkeyInput" :initialData="node.outputData" :initialWidth="node.width"
+      :initialHeight="node.height" @input-change="onInputChange" @resize="onResize" />
+
+    <!-- Output Manager -->
+    <OutputManager :hasTextOutput="node.hasTextOutput" :hasTSPChart="node.hasChartOutput" :outputData="node.outputData"
+      :solverId="solverId" :initialWidth="node.width" :initialHeight="node.height" @resize="onResize" />
+
+    <!-- Input Ports -->
+    <InPort v-for="(input, index) in node.inputTypes" :key="'input-' + index"
+      :id="generatePortId(node.id, 'input', index)" :nodeWidth="200"
+      :offsetY="getPortPosition(index, node.inputTypes.length)" :label="input" :inPortData="portInputData[index]"
+      @start-link="onStartLink" />
+
+    <!-- Output Ports -->
+    <OutPort v-for="(output, index) in node.outputTypes" :key="'output-' + index"
+      :id="generatePortId(node.id, 'output', index)" :nodeWidth="200"
+      :offsetY="getPortPosition(index, node.outputTypes.length)" :label="output" :outPortData="portOutputData"
       @start-link="onStartLink" />
   </div>
 </template>
 
 <script>
-import BasePoint from "./NodePort.vue";
+import { Node } from '@/models/Node';
+import { generatePortId, processSubmitAction, processApiStreamResponse } from '@/utils/nodeUtils';
+import InputManager from "@/components/managers/InputManager.vue";
+import OutputManager from "@/components/managers/OutputManager.vue";
+import InPort from "@/components/InPort.vue";
+import OutPort from "@/components/OutPort.vue";
 
 export default {
-  name: "BaseNode",
+  name: "WorkflowNode",
   components: {
-    BasePoint,
+    InputManager,
+    OutputManager,
+    InPort,
+    OutPort,
   },
+
   props: {
-    id: {
-      type: String,
-      required: true,
-    },
-    name: {
-      type: String,
-      default: "Node Name",
-    },
-    x: {
-      type: Number,
-      required: true,
-    },
-    y: {
-      type: Number,
-      required: true,
-    },
-    inputTypes: {
-      type: Array,
-      default: () => [],
-    },
-    outputTypes: {
-      type: Array,
-      default: () => [],
-    },
-    textInput: {
-      type: Boolean,
-      default: false,
-    },
-    textOutput: {
-      type: Boolean,
-      default: false,
-    },
-    triggerAction: {
-      type: String,
-      default: "A", // auto trigger
-      validator: (value) => ["T", "O", "A"].includes(value), // Validate allowed values
-    },
-    nodeData: { // Allow multiple types
-      type: [String, Array, Object, null],
-      default: null,
-    },
+    node: { type: Node, required: true },
   },
+
   data() {
     return {
-      userInput: "", // Store input from the textarea
-      maxWidth: 200, // Fixed width of the node
-      minFontSize: 12, // Minimum font size
-      maxFontSize: 16, // Maximum font size
-      maxChars: 20, // Maximum characters before truncation
+      solverId: null,
+      portInputData: this.node.inputData || [],
+      portOutputData: this.node.outputData || "",
+      nodeConfig: {
+        width: 200,
+        minFontSize: 12,
+        maxFontSize: 16,
+        maxChars: 20,
+      },
     };
   },
+
   computed: {
     fontSize() {
-      // Calculate the font size based on the length of the node name.
-      const length = this.name.length;
-      if (length > this.maxChars) {
-        return Math.max(this.minFontSize, this.maxFontSize - (length - this.maxChars) * 0.5);
-      }
-      return this.maxFontSize;
+      const length = this.node.name.length;
+      const { minFontSize, maxFontSize, maxChars } = this.nodeConfig;
+      return length > maxChars
+        ? Math.max(minFontSize, maxFontSize - (length - maxChars) * 0.5)
+        : maxFontSize;
     },
 
     truncatedName() {
-      // Truncate the node name if it exceeds the maximum characters.
-      if (this.name.length > this.maxChars) {
-        return this.name.slice(0, this.maxChars - 3) + "...";
-      }
-      return this.name;
+      return this.node.name.length > this.nodeConfig.maxChars
+        ? this.node.name.slice(0, this.nodeConfig.maxChars - 3) + "..."
+        : this.node.name;
     },
 
-    nodeDataToString() {
-      if (this.nodeData === null || this.nodeData === undefined) {
-        return ""; // Return an empty string for null or undefined
-      }
+    actionTitle() {
+      return this.node.triggerAction === 'S' ? 'Submit' : 'Optimize';
+    }
 
-      if (typeof this.nodeData === "string") {
-        return this.nodeData; // Return the string as is
-      }
-
-      if (Array.isArray(this.nodeData) || typeof this.nodeData === "object") {
-        return JSON.stringify(this.nodeData, null, 2); // Pretty-print JSON for arrays or objects
-      }
-
-      // Fallback for other types (e.g., numbers, booleans)
-      return String(this.nodeData);
-    },
   },
+
+  watch: {
+    'node.inputData': {
+      immediate: true,
+      handler(newValue) {
+        // Check if inputData is an array and has at least one element
+        if (Array.isArray(newValue) && newValue.length > 0) {
+          const firstInput = newValue[0];
+          // Check if the first element is an object and contains solverId
+          if (firstInput && typeof firstInput === 'object' && firstInput.solverId) {
+            this.solverId = firstInput.solverId; // Update the solverId property
+          }
+        }
+        // Update portInputData with the new value
+        this.portInputData = Array.isArray(newValue) ? [...newValue] : [];
+      },
+      deep: true
+    },
+    'node.outputData': {
+      immediate: true,
+      handler(newValue) {
+        this.portOutputData = newValue;
+      }
+    }
+  },
+
   methods: {
+    generatePortId,
+
+    getChangedDataIndex(newValue, oldValue) {
+      if (!oldValue || !Array.isArray(oldValue)) return 0;
+      const index = newValue.findIndex((value, i) => value !== oldValue[i]);
+      return index === -1 ? 0 : index;
+    },
+
+    getPortPosition(index, totalPorts) {
+      const nodeHeight = 100;
+      const nodeNameHeight = 30;
+      const spacing = (nodeHeight - nodeNameHeight) / (totalPorts + 1);
+      return nodeNameHeight + spacing * (index + 1);
+    },
+
     onStartDrag(event) {
-      this.$emit("start-drag", this.id, event);
+      this.$emit("start-drag", this.node.id, event);
     },
 
     onStartLink(pointId, type, position) {
-      // Calculate absolute position based on node position
       const absolutePosition = {
-        x: position.x + this.x,
-        y: position.y + this.y,
+        x: position.x + this.node.x,
+        y: position.y + this.node.y,
       };
       this.$emit("start-link", pointId, type, absolutePosition);
     },
 
     onTrigger() {
-      // Determine the data to forward based on the node type
-      let dataToForward;
-      if (this.textInput) {
-        // For nodes with a textarea, use userInput
-        dataToForward = this.userInput;
-      } else {
-        // For other nodes, use nodeData
-        dataToForward = this.nodeData;
+      // User clicks on action button, data at outPort
+      switch (this.node.triggerAction) {
+        case "S":
+          processSubmitAction(this.node.id, this.node.outputData);
+          break;
+        case "O":
+          if (this.node.transformType === "invoke-api") {
+            processApiStreamResponse(this.node);
+          }
+          break;
       }
-      // Emit the trigger event with the data
-      this.$emit("trigger", {
-        nodeId: this.id,
-        action: this.triggerAction,
-        data: dataToForward,
-      });
     },
 
-    onUpdateNodeData(event) {
-      // Emit an event to update the nodeData prop in the parent component
-      this.$emit("update-node-data", event.target.value);
+    onInputChange(value) {
+      this.portOutputData = value;
+      this.node.updateOutputData(value);
     },
 
-    getPortPosition(index, totalPorts) {
-      const nodeHeight = 100; // Total height of the node
-      const nodeNameHeight = 30; // Height of the node name section (adjust as needed)
-      const availableHeight = nodeHeight - nodeNameHeight; // Height available for points
-      const spacing = availableHeight / (totalPorts + 1); // Evenly distribute points
-      return nodeNameHeight + spacing * (index + 1); // Offset by node name height
-    },
+    onResize(dimensions) {
+      this.node.updateDimensions(dimensions.width, dimensions.height);
+    }
   },
 };
 </script>
@@ -193,12 +178,11 @@ export default {
   position: absolute;
   cursor: grab;
   user-select: none;
-  z-index: 100;
+  z-index: 5;
 }
 
 .node-rectangle {
   width: 200px;
-  /* Fixed width */
   height: 100px;
   background-color: #ff6b6b;
   color: white;
@@ -208,8 +192,6 @@ export default {
   position: relative;
   z-index: 1;
   overflow: visible;
-  /* Allow content to extrude outside */
-  position: relative;
 }
 
 .node-name {
@@ -220,13 +202,9 @@ export default {
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
   height: 30px;
-  /* Fixed height */
   overflow: hidden;
-  /* Ensure text doesn't overflow */
   white-space: nowrap;
-  /* Prevent text from wrapping */
   text-overflow: ellipsis;
-  /* Add ellipsis for overflow */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -234,30 +212,21 @@ export default {
 
 .left-section {
   position: absolute;
-  left: -220px;
-  /* Move it left of the node, with some spacing */
+  left: -200px;
   top: 0;
   width: 200px;
-  /* Same width as node-rectangle */
   padding: 0;
-  /* Remove padding since it's now separate */
 }
 
 .right-section {
   position: absolute;
-  /* Position the right section absolutely */
   top: 0;
-  /* Align to the top */
   right: -15px;
-  /* Move 50% outside the node */
   width: 30px;
-  /* Width of the right section */
   height: 30px;
-  /* Match the height of the node-name */
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  /* Align button to the right */
 }
 
 .trigger-button {
@@ -269,64 +238,12 @@ export default {
   cursor: pointer;
   font-size: 12px;
   position: relative;
-  /* Ensure the button is positioned correctly */
   z-index: 2;
-  /* Ensure the button is above other elements */
+  transition: background-color 0.3s ease;
 }
 
 .trigger-button:hover {
-  background-color: #3aa876;
-}
-
-.connector-line {
-  position: absolute;
-  top: 0;
-  pointer-events: none;
-  z-index: 0;
-  /* Ensure it's behind other elements */
-}
-
-.left-connector {
-  left: -220px;
-}
-
-.right-connector {
-  left: 200px;
-  /* Node width */
-}
-
-.output-section {
-  position: absolute;
-  left: 220px;
-  /* Move it right of the node */
-  top: 0;
-  width: 200px;
-}
-
-.text-input-area {
-  width: 100%;
-  height: 100%;
-  min-height: 80px;
-  resize: vertical;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  padding: 5px;
-  font-family: inherit;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.text-output-area {
-  width: 100%;
-  height: 100%;
-  min-height: 120px;
-  resize: both;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  padding: 5px;
-  font-family: inherit;
-  font-size: 14px;
-  box-sizing: border-box;
-  overflow: auto;
+  background-color: #2e8b57;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>

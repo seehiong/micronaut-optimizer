@@ -19,8 +19,14 @@ export default {
         onStartDrag(nodeId, event) {
             this.draggingNodeId = nodeId;
             const node = this.nodes.find((n) => n.id === nodeId);
-            this.offset.x = event.clientX - node.x;
-            this.offset.y = event.clientY - node.y;
+
+            // Get the container's position
+            const container = this.$el.parentElement;
+            const containerRect = container.getBoundingClientRect();
+
+            // Calculate offset relative to the container
+            this.offset.x = event.clientX - containerRect.left - node.x;
+            this.offset.y = event.clientY - containerRect.top - node.y;
 
             document.addEventListener("mousemove", this.onMouseMove);
             document.addEventListener("mouseup", this.onStopDrag);
@@ -33,8 +39,14 @@ export default {
         onMouseMove(event) {
             if (this.draggingNodeId !== null) {
                 const node = this.nodes.find(n => n.id === this.draggingNodeId);
-                node.x = event.clientX - this.offset.x;
-                node.y = event.clientY - this.offset.y;
+
+                // Get the container's position
+                const container = this.$el.parentElement;
+                const containerRect = container.getBoundingClientRect();
+
+                // Update node position relative to the container
+                node.x = event.clientX - containerRect.left - this.offset.x;
+                node.y = event.clientY - containerRect.top - this.offset.y;
 
                 // Update all lines connected to this node
                 this.lines.forEach(line => {
@@ -46,6 +58,7 @@ export default {
                     }
                 });
             }
+
             if (this.linking.isDrawing) {
                 this.mousePosition = { x: event.clientX, y: event.clientY };
             }

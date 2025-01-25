@@ -1,44 +1,32 @@
 <template>
   <div class="app">
     <!-- LeftPanel Component -->
-    <LeftPanel ref="leftPanel" />
+    <LeftPanel :nodes="nodes" :lines="lines" @clear-state="onClearState" @load-state="onLoadState" />
 
     <!-- MainPanel Component -->
-    <MainPanel :nodes="nodes" :linking="linking" :mousePosition="mousePosition" :lines="lines"
-      :leftPanelWidth="leftPanelWidth" @trigger="onTrigger" @drop="onDrop" @update-linking="onUpdateLinking"
-      @add-line="onAddLine" @update-mouse-position="onUpdateMousePosition" />
+    <MainPanel :key="mainPanelKey" :nodes="nodes" :lines="lines" :linking="linking" :mousePosition="mousePosition"
+      @drop="onDrop" @update-linking="onUpdateLinking" @add-line="onAddLine"
+      @update-mouse-position="onUpdateMousePosition" />
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import LeftPanel from "./components/LeftPanel.vue";
-import MainPanel from "./components/MainPanel.vue";
+import { useToast } from "vue-toastification";
+import { mapState, mapActions } from 'vuex';
+import { Node } from "@/models/Node";
+import LeftPanel from "@/components/LeftPanel.vue";
+import MainPanel from "@/components/MainPanel.vue";
 
-let nodeCounter = 0;
+const toast = useToast();
+const NODE_LIMIT = 20;
 
 export default {
   components: {
     LeftPanel,
     MainPanel,
   },
-  setup() {
-    const leftPanel = ref(null);
-    const leftPanelWidth = ref(0);
-
-    onMounted(() => {
-      leftPanelWidth.value = leftPanel.value.$el.offsetWidth;
-    });
-
-    return {
-      leftPanel,
-      leftPanelWidth,
-    };
-  },
   data() {
     return {
-      nodes: [],
-      lines: [],
       linking: {
         sourceId: null,
         sourceType: null,
@@ -46,43 +34,55 @@ export default {
         isDrawing: false,
       },
       mousePosition: { x: 0, y: 0 },
-      hasOptimizationTrigger: false,
+      mainPanelKey: 0,
     };
   },
-
+  computed: {
+    ...mapState(['nodes', 'lines']), // Map the nodes and lines arrays from the Vuex store
+  },
   methods: {
-    // Handle drop event to add a new node
-    onDrop(event) {
-      event.preventDefault();
-      const nodeData = JSON.parse(event.dataTransfer.getData("application/json"));
+    ...mapActions(['updateNodes', 'updateLines', 'addLine']), // Map the actions
 
-      // Only create new node if it's coming from LeftPanel
-      if (nodeData.isNew) {
-        const newNode = {
-          ...nodeData,
-          id: `n${nodeCounter++}`, // Use the static counter for node id
-          x: event.offsetX,
-          y: event.offsetY,
-        };
-        this.nodes.push(newNode);
-
-      } else {
-        // Handle moving existing node
-        // Update position of existing node
-      }
-    },
-    onUpdateLinking(linkingState) {
-      this.linking = linkingState;
-    },
-    onAddLine(newLine) {
-      this.lines = [...this.lines, newLine];
-    },
     onUpdateMousePosition(position) {
       this.mousePosition = position;
     },
-    onTrigger(nodeId, action) {
-      console.log(`Trigger fired for node: ${nodeId}, Action: ${action}`);
-      // Implement logic based on the action (T or O)
+
+    onUpdateLinking(linkingState) {
+      this.linking = linkingState;
+    },
+
+    // Handle drop event to add a new node
+    onDrop(event) {
+      event.preventDefault();
+      if (this.nodes.length >= NODE_LIMIT) {
+        toast.warning(`Maximum limit of ${NODE_LIMIT} nodes reached!`);
+        return;
+      }
+      const data = JSON.parse(event.dataTransfer.getData("application/json"));
+      if (data.isNew) {
+        const newNode = Node.fromDroppedData(data, event.x, event.y);
+        this.nodes.push(newNode);
+      }
+    },
+
+    // Handle adding a new line
+    onAddLine(newLine) {
+      this.addLine(newLine);
+    },
+
+    // Handle clearing the state
+    onClearState() {
+      this.updateNodes([]);
+      this.updateLines([]);
+      this.mainPanelKey = (this.mainPanelKey + 1) % 1000;
+    },
+
+    // Handle loading the state
+    onLoadState(state) {
+      const nodes = state.nodes.map(nodeData => Node.fromLoadedState(nodeData));
+      Node.updateCounter(nodes);
+      this.updateNodes(nodes);
+      this.updateLines(state.lines);
     },
   },
 };
