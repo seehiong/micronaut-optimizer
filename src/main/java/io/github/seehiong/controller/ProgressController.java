@@ -3,6 +3,7 @@ package io.github.seehiong.controller;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.github.seehiong.model.output.CompletionOutput;
 import io.github.seehiong.model.output.Output;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
@@ -29,11 +30,13 @@ public class ProgressController {
     }
 
     @Get(value = "/{solverId}", produces = MediaType.TEXT_EVENT_STREAM)
-    public Flowable<Event<? extends Output>> streamProgress(String solverId) {
+    public Flowable<Event<Output>> streamProgress(String solverId) {
         PublishSubject<? extends Output> progressSubject = activeSolvers.get(solverId);
         if (progressSubject == null) {
             return Flowable.empty();
         }
-        return progressSubject.toFlowable(BackpressureStrategy.BUFFER).map(Event::of);
+        return progressSubject.toFlowable(BackpressureStrategy.BUFFER)
+                .map(Event::of)
+                .concatWith(Flowable.just(Event.of(new CompletionOutput())));
     }
 }

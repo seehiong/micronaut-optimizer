@@ -424,6 +424,7 @@ public class TSPGaSolver extends BaseSolver<TSPInput, TSPOutput> {
                     // Publish progress update
                     publisher.onNext(TSPOutput.builder()
                             .solverState(SolverState.SOLVING)
+                            .elapsedTime(elapsedDuration.toSeconds())
                             .iteration(generation)
                             .tourMetric(bestIndividual.getTourMetric())
                             .costMetric(bestIndividual.getCostMetric())
@@ -453,6 +454,8 @@ public class TSPGaSolver extends BaseSolver<TSPInput, TSPOutput> {
             // Find and print the most efficient path
             log.info("most efficient path after generations:{}, temperature: {}", generation, temperature);
             if (bestIndividual != null) {
+                Duration elapsedDuration = Duration.between(startTime, Instant.now());
+                bestIndividual.setElapsedTime(elapsedDuration.getSeconds());
                 bestIndividual.setSolverId(input.getSolverId());
                 bestIndividual.setSolverState(SolverState.SOLVED);
                 bestIndividual.setIteration(generation);

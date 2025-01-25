@@ -8,7 +8,71 @@ This repository contains the Micronaut Optimizer project, which aims to optimize
 
 The architecture of the Micronaut Optimizer is visualized using PlantUML. Below is the updated PlantUML diagram representing the high-level architecture of the project.
 
-![optimizer-architecture](src/main/resources/static/images/optimizer-architecture.png)
+```plantuml
+@startuml
+package "io.github.seehiong" {
+    package "controller" {
+        class ProgressController
+        class ProblemController
+    }
+    
+    package "factory" {
+        class SolverServiceFactory
+    }
+    
+    package "service" {
+        class SolverService
+        class BaseSolverService
+        class FLPService
+    }
+    
+    package "utils" {
+        class DisposableUtils << (U,orchid) utility >>
+        class CoordUtils << (U,orchid) utility >>
+        class FileUtils << (U,orchid) utility >>
+    }
+
+    package "model" {
+        abstract class Input
+        class FLPInput
+        abstract class Output
+        class FLPOutput
+        interface Constraint
+        interface Objective
+        interface Metric
+        interface Metadata
+    }   
+
+    package "solver" {
+        interface Solver
+        class FLPSolver
+        class TSPSolver
+    }    
+}
+
+SolverService <|.. BaseSolverService
+BaseSolverService <|-- FLPService
+FLPService --> DisposableUtils
+
+ProgressController --> Output
+ProblemController --> SolverService
+SolverServiceFactory -> SolverService
+FLPSolver --|> Solver
+TSPSolver --|> Solver
+
+Input <|-- FLPInput
+Output <|-- FLPOutput
+Input --> Constraint
+Input --> Objective
+Output --> Metric
+Output --> Metadata
+
+FLPSolver --> CoordUtils
+FLPSolver --> FileUtils
+@enduml
+```
+
+[optimizer-architecture](images/optimizer-architecture.png)
 
 ### Key Features
 
@@ -131,7 +195,7 @@ GET /progress/{solverId}        # Stream optimization progress
 
 #### Progress
 
-![FLP Progress](src/main/resources/static/images/flp-progress.png)
+![FLP Progress](images/flp-progress.png)
 
 ### Traveling Salesman Problem (TSP)
 
@@ -161,7 +225,7 @@ GET /progress/{solverId}        # Stream optimization progress
 ```
 #### Progress
 
-![TSP Progress](src/main/resources/static/images/tsp-progress.png)
+![TSP Progress](images/tsp-progress.png)
 
 ## Capacitated Vehicle Routing Problem (CVRP)
 
@@ -208,7 +272,7 @@ GET /progress/{solverId}        # Stream optimization progress
 
 #### Progress
 
-![CVRP Progress](src/main/resources/static/images/cvrp-progress.png)
+![CVRP Progress](images/cvrp-progress.png)
 
 ## Bin Packing Problem (BPP)
 
@@ -230,7 +294,7 @@ GET /progress/{solverId}        # Stream optimization progress
 
 #### Progress
 
-![BPP Progress](src/main/resources/static/images/bpp-progress.png)
+![BPP Progress](images/bpp-progress.png)
 
 ## Contributing
 

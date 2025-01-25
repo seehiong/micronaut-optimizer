@@ -1,5 +1,7 @@
 package io.github.seehiong.solver;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,6 +42,7 @@ public class TSPSolver extends BaseSolver<TSPInput, TSPOutput> {
             TSPOutput output = super.startSolve(input);
             super.publishNext(emitter, publisher, output);
 
+            Instant startTime = Instant.now(); // Record the start time
             double[][] distances = input.getDistances();
             Map<CostMetric, TourMetric> optimalSolution = new HashMap<>();
             TourMetric bestTour = new TourMetric(new int[distances.length]);
@@ -107,13 +110,16 @@ public class TSPSolver extends BaseSolver<TSPInput, TSPOutput> {
                     optimalSolution.put(bestDistance, bestTour);
                     log.info("best tour distance: {}", bestDistance); // Print the new best distance
 
+                    Duration elapsedDuration = Duration.between(startTime, Instant.now());
                     TSPOutput bestOutput = TSPOutput.builder()
+                            .solverId(input.getSolverId())
+                            .solverState(SolverState.SOLVING)
+                            .elapsedTime(elapsedDuration.toSeconds())
                             .iteration((int) model.getSolver().getSolutionCount())
                             .costMetric(bestDistance)
                             .build();
                     emitter.next(bestOutput);
 
-                    bestOutput.setSolverState(SolverState.SOLVING);
                     bestOutput.setCitiesMetadata(cities);
                     bestOutput.setTourMetric(optimalSolution.get(bestDistance));
                     publisher.onNext(bestOutput);
@@ -124,9 +130,11 @@ public class TSPSolver extends BaseSolver<TSPInput, TSPOutput> {
                 bestDistance.setCost(model.getSolver().getBestSolutionValue().doubleValue());
                 log.info("optimal tour distance: {}", bestDistance);
 
+                Duration elapsedDuration = Duration.between(startTime, Instant.now());
                 super.publishNext(emitter, publisher, TSPOutput.builder()
                         .solverId(input.getSolverId())
                         .solverState(SolverState.SOLVED)
+                        .elapsedTime(elapsedDuration.toSeconds())
                         .iteration((int) model.getSolver().getSolutionCount())
                         .tourMetric(optimalSolution.get(bestDistance))
                         .costMetric(bestDistance)

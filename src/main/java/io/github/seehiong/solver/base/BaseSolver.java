@@ -29,6 +29,7 @@ public abstract class BaseSolver<I extends Input, O extends Output> implements S
     }
 
     protected void publishComplete(FluxSink<Object> emitter, PublishSubject<O> publisher) {
+        emitter.next("complete");
         emitter.complete();
         publisher.onComplete();
     }
