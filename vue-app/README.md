@@ -199,7 +199,7 @@ yarn lint
 
 ## Screenshot
 
-![Optimizer-Vue-App](images/micronaut-optimizer-vue-app-tsp-problem.png)
+![Optimizer-Vue-App](../images/micronaut-optimizer-vue-app-tsp-problem.png)
 
 ## Configuration Reference
 
