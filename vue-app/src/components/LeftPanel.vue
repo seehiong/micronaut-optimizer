@@ -126,6 +126,14 @@ export default {
               triggerAction: TriggerAction.AUTO,
               transformType: "extract-by-key",
             }),
+            new Node({
+              name: NodeTypes.CONVERT_TO_PROMPT,
+              iconType: IconType.TRANSFORM,
+              inputTypes: ["textInput"],
+              outputTypes: ["prompt"],
+              triggerAction: TriggerAction.AUTO,
+              transformType: "convert-to-prompt", // this transform does nothing at the moment
+            }),
           ],
         },
         {
@@ -201,6 +209,20 @@ export default {
             }),
           ],
         },
+        {
+          title: "Chat With LLM",
+          nodes: [
+            new Node({
+              name: NodeTypes.CHAT_WITH_LLM,
+              iconType: IconType.CHAT,
+              inputTypes: ["any", "prompt"],
+              outputTypes: ["response"],
+              triggerAction: "C",
+              transformType: "invoke-api",
+              apiEndpoint: "/api/generate", // dummy endpoint as its overridden by the .env file
+            }),           
+          ],
+        },
       ],
     };
   },
@@ -239,6 +261,7 @@ export default {
         constraint: "⛓️",
         transform: "🔄",
         problem: "🧩",
+        chat: "💬",
       };
       return icons[iconType] || "🔘";
     },

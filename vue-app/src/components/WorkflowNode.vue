@@ -41,6 +41,7 @@
 <script>
 import { Node } from '@/models/Node';
 import { generatePortId, processSubmitAction, processApiStreamResponse } from '@/utils/nodeUtils';
+import { sendChartDataToOpenAI, sendChartDataToLocalLLM } from '@/utils/nodeUtils';
 import InputManager from "@/components/managers/InputManager.vue";
 import OutputManager from "@/components/managers/OutputManager.vue";
 import InPort from "@/components/InPort.vue";
@@ -89,7 +90,14 @@ export default {
     },
 
     actionTitle() {
-      return this.node.triggerAction === 'S' ? 'Submit' : 'Optimize';
+      if (this.node.triggerAction === 'S') {
+        return 'Submit';
+      } else if (this.node.triggerAction === 'O') {
+        return 'Optimize';
+      } else if (this.node.triggerAction === 'C') {
+        return 'Chat';
+      }
+      return 'Unknown Action';
     }
 
   },
@@ -147,7 +155,7 @@ export default {
       this.$emit("start-link", pointId, type, absolutePosition);
     },
 
-    onTrigger() {
+    async onTrigger() {
       // User clicks on action button, data at outPort
       switch (this.node.triggerAction) {
         case "S":
@@ -156,6 +164,16 @@ export default {
         case "O":
           if (this.node.transformType === "invoke-api") {
             processApiStreamResponse(this.node);
+          }
+          break;
+        case "C":
+          if (this.node.transformType === "invoke-api") {
+            const llmProvider = process.env.VUE_APP_LLM_PROVIDER?.trim() || "local";
+            if (llmProvider === "openai") {
+              await sendChartDataToOpenAI(this.node);
+            } else {
+              await sendChartDataToLocalLLM(this.node);
+            }
           }
           break;
       }

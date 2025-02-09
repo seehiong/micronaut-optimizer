@@ -422,18 +422,17 @@ public class TSPGaSolver extends BaseSolver<TSPInput, TSPOutput> {
                     stagnationCount = 0;
 
                     // Publish progress update
-                    publisher.onNext(TSPOutput.builder()
+                    TSPOutput bestOutput = TSPOutput.builder()
                             .solverState(SolverState.SOLVING)
                             .elapsedTime(elapsedDuration.toSeconds())
                             .iteration(generation)
                             .tourMetric(bestIndividual.getTourMetric())
                             .costMetric(bestIndividual.getCostMetric())
                             .citiesMetadata(cities)
-                            .build());
-                    emitter.next(TSPOutput.builder()
                             .costMetric(bestIndividual.getCostMetric())
                             .iteration(generation)
-                            .build());
+                            .build();
+                    super.publishNext(emitter, publisher, bestOutput);
 
                 } else {
                     stagnationCount++;

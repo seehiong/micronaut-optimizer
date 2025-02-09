@@ -118,11 +118,9 @@ public class TSPSolver extends BaseSolver<TSPInput, TSPOutput> {
                             .iteration((int) model.getSolver().getSolutionCount())
                             .costMetric(bestDistance)
                             .build();
-                    emitter.next(bestOutput);
-
                     bestOutput.setCitiesMetadata(cities);
                     bestOutput.setTourMetric(optimalSolution.get(bestDistance));
-                    publisher.onNext(bestOutput);
+                    super.publishNext(emitter, publisher, bestOutput);
                 }
             }
 

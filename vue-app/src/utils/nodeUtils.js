@@ -327,6 +327,98 @@ export async function processApiStreamResponse(node) {
 }
 
 /**
+ * Sends Chart.js data and a prompt to OpenAI's API and processes the response.
+ * 
+ * @param {object} node - The node for which the API invocation is being processed.
+ * @returns {Promise<void>} - A promise that resolves with the LLM's response.
+ */
+export async function sendChartDataToOpenAI(node) {
+    try {
+        const apiEndpoint = process.env.VUE_APP_OPENAI_API_ENDPOINT;
+        const apiKey = process.env.VUE_APP_OPENAI_API_KEY;
+        if (!apiEndpoint || !apiKey) {
+            throw new Error("Missing required environment variables: VUE_APP_OPENAI_API_ENDPOINT or VUE_APP_OPENAI_API_KEY");
+        }
+
+        const data = node.inputData[0];
+        const prompt = node.inputData[1];
+        const fullPrompt = `${prompt}\n\nData:\n\n###${JSON.stringify(data, null, 2)}###`;
+
+        const requestBody = {
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: fullPrompt }],
+            temperature: 0.7,
+            max_tokens: 200,
+        };
+
+        const response = await fetch(apiEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            throw new Error(`OpenAI request failed: ${await response.text()}`);
+        }
+
+        const result = await response.json();
+        if (!result.choices || result.choices.length === 0) {
+            throw new Error("Invalid OpenAI response");
+        }
+
+        node.outputData = result.choices[0].message.content;
+        propagateDataToDownstreamNodes(node);
+        toast.success("LLM processed the data successfully!");
+    } catch (error) {
+        toast.error(`LLM request failed: ${error.message}`);
+        console.error(error);
+    }
+}
+
+/**
+ * Sends Chart.js data and a prompt to a local LLM via the API and processes the response.
+ * 
+ * @param {object} node - The node for which the API invocation is being processed.
+ * @returns {Promise<void>} - A promise that resolves with the LLM's response.
+ */
+export async function sendChartDataToLocalLLM(node) {
+    try {
+        const apiEndpoint = process.env.VUE_APP_LOCAL_LLM_API_ENDPOINT;
+        if (!apiEndpoint) {
+            throw new Error("Missing required environment variables: VUE_APP_LOCAL_LLM_API_ENDPOINT");
+        }
+
+        const data = node.inputData[0];
+        const prompt = node.inputData[1];
+        const fullPrompt = `${prompt}\n\nData:\n\n###${JSON.stringify(data, null, 2)}###`;
+
+        const requestBody = {
+            model: "deepseek-r1:1.5b",
+            prompt: fullPrompt,
+            stream: false,
+        };
+
+        const response = await fetch(apiEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Local LLM request failed: ${await response.text()}`);
+        }
+
+        const result = await response.json();
+        node.outputData = result.response;
+        propagateDataToDownstreamNodes(node);
+        toast.success("Local LLM processed the data successfully!");
+    } catch (error) {
+        toast.error(`Local LLM request failed: ${error.message}`);
+        console.error(error);
+    }
+}
+
+/**
  * Propagates the transformed output data from a node to all connected downstream nodes.
  * This function finds all connections originating from the given node and forwards the
  * output data to the corresponding input ports of the connected downstream nodes.

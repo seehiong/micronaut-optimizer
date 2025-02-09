@@ -5,13 +5,15 @@ export const IconType = {
     OUTPUT: 'output',
     CONSTRAINT: 'constraint',
     TRANSFORM: 'transform',
-    PROBLEM: 'problem'
+    PROBLEM: 'problem',
+    CHAT: 'chat'
 };
 
 export const TriggerAction = {
     SUBMIT: 'S',    // Submit action
     AUTO: 'A',      // Auto-apply action
-    OPTIMIZE: 'O'   // Optimize action
+    OPTIMIZE: 'O',  // Optimize action
+    CHAT: 'C'       // Chat action
 };
 
 // Node type constants
@@ -28,7 +30,9 @@ export const NodeTypes = {
     TSP_INPUT: 'TSP Input',
     TSP_PROBLEM: 'TSP Problem',
     TSP_GA_PROBLEM: 'TSP-GA Problem',
-    TSP_CHART_OUTPUT: 'TSP Chart Output'
+    TSP_CHART_OUTPUT: 'TSP Chart Output',
+    CONVERT_TO_PROMPT: 'Convert to Prompt',
+    CHAT_WITH_LLM: 'Chat with LLM'
 };
 
 export class Node {

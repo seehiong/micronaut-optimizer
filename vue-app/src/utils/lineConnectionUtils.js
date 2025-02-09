@@ -38,6 +38,14 @@ const nodeTypes = {
         inputTypes: ["TSPInput"],
         outputTypes: ["TSPOutput"],
     },
+    ConvertToPrompt: {
+        inputTypes: ["textInput"],
+        outputTypes: ["prompt"],
+    },
+    ChatWithAgent: {
+        inputTypes: ["prompt"],
+        outputTypes: ["response"],
+    },
 };
 
 const typeCompatibility = {

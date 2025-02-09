@@ -67,7 +67,7 @@ textarea {
     box-sizing: border-box;
     cursor: text;
     min-width: 100px;
-    max-width: 300px;
+    max-width: 600px;
     min-height: 60px;
     max-height: 400px;
 }
